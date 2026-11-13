@@ -8,9 +8,9 @@ Give it a business **name, address (City, ST) and phone number** plus a **niche*
 
 **https://attiqbaig1.github.io/landing-page-engine/**
 
-The whole engine runs inside the browser (Python via Pyodide): single business, bulk CSV, preview, download (single `.html` or ZIP) and **one-click publishing to WordPress** with an Application Password. WordPress credentials stay in your own browser.
+Same screens as the Streamlit app: WordPress connection → 1️⃣ Generate Sites (manual entry or CSV upload, optional one-click publish) → 2️⃣ Preview & Download → 3️⃣ Publish to WordPress (Publish ALL / per site) → Live URLs. The real Python engine runs inside the browser via Pyodide. WordPress credentials stay in your own browser.
 
-Every push to `main` rebuilds and redeploys it (`.github/workflows/pages.yml`, source in `web/`). Demo pages for every niche: `/demos/`.
+Every push to `main` rebuilds and redeploys it (`.github/workflows/pages.yml`, source in `web/`).
 
 ## Run the Streamlit app locally (optional)
 

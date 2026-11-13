@@ -1,7 +1,7 @@
 name: Deploy web app to GitHub Pages
 
-# Builds the browser version of the engine (web/) plus one demo page per
-# niche (demos/) and publishes both to GitHub Pages on every push to main.
+# Builds the browser version of the engine (web/) and publishes it to
+# GitHub Pages on every push to main.
 on:
   push:
     branches: [main]
@@ -38,9 +38,6 @@ jobs:
           tar xzf pyodide-*.tgz
       - name: Build web app
         run: python web/build_web.py --pyodide /tmp/pyo/package --out site
-      - name: Build niche demo pages
-        working-directory: engine
-        run: python build_demo.py --out ../site/demos
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

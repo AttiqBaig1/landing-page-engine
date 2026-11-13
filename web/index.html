@@ -6,228 +6,208 @@
 <title>Landing Page Engine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
 <style>
-/* Layout idea: a work-bench — form on the left, live results on the right; niche swatches show each palette. */
+/* Same layout and look as the Streamlit app (engine/app.py): one wide column,
+   WordPress expander, then steps 1, 2, 3. */
 :root{
-  --bg:#f4f5f2; --panel:#ffffff; --ink:#1b1f1c; --muted:#5d665f; --line:#dde1dc;
-  --accent:#1f7a4d; --accent-ink:#ffffff; --soft:#e8f2ec; --warn:#a15c00; --bad:#b42318;
-  --f-disp:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+  --bg:#ffffff; --ink:#31333f; --muted:#808495; --line:#e6e9ef; --soft:#f0f2f6;
+  --primary:#ff4b4b; --primary-ink:#ffffff; --info-bg:#e8f2fc; --info-ink:#0f4c81;
+  --ok-bg:#dff3e5; --ok-ink:#176f2c; --warn-bg:#fff6d6; --warn-ink:#7a5b00; --bad-bg:#ffe1e1; --bad-ink:#a1171a;
+  --f-body:'Source Sans 3','Source Sans Pro',system-ui,sans-serif; --f-mono:'Source Code Pro',ui-monospace,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#111412; --panel:#191d1a; --ink:#e9ece9; --muted:#9aa49d; --line:#2b312d;
-  --accent:#3fb37a; --accent-ink:#06130c; --soft:#1d2b23; --warn:#e3a33b; --bad:#f07468; color-scheme:dark;}}
+  --bg:#0e1117; --ink:#fafafa; --muted:#a3a8b8; --line:#2b2f3a; --soft:#262730;
+  --info-bg:#172d43; --info-ink:#c7e3ff; --ok-bg:#173928; --ok-ink:#a6e8b9; --warn-bg:#3d3414; --warn-ink:#ffe08a; --bad-bg:#3e1a1d; --bad-ink:#ffb3b5; color-scheme:dark;}}
 :root[data-theme="dark"]{
-  --bg:#111412; --panel:#191d1a; --ink:#e9ece9; --muted:#9aa49d; --line:#2b312d;
-  --accent:#3fb37a; --accent-ink:#06130c; --soft:#1d2b23; --warn:#e3a33b; --bad:#f07468; color-scheme:dark;}
+  --bg:#0e1117; --ink:#fafafa; --muted:#a3a8b8; --line:#2b2f3a; --soft:#262730;
+  --info-bg:#172d43; --info-ink:#c7e3ff; --ok-bg:#173928; --ok-ink:#a6e8b9; --warn-bg:#3d3414; --warn-ink:#ffe08a; --bad-bg:#3e1a1d; --bad-ink:#ffb3b5; color-scheme:dark;}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
-.wrap{max-width:1240px;margin:0 auto;padding:28px 20px 60px;display:grid;gap:22px}
-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
-h1{font:800 clamp(26px,4vw,38px)/1.05 var(--f-disp);margin:0;letter-spacing:-.02em;text-wrap:balance}
-h2{font:600 18px/1.2 var(--f-disp);margin:0}
-.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
-.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:13px;color:var(--muted)}
-.pill i{width:8px;height:8px;border-radius:50%;background:var(--warn)}
-.pill.ok i{background:var(--accent)} .pill.err i{background:var(--bad)}
-.grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:22px;align-items:start}
-@media (max-width:900px){.grid{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:16px}
-.tabs{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:10px;border:1px solid var(--line)}
-.tabs button{flex:1;border:0;background:none;padding:9px 10px;border-radius:7px;font:600 14px var(--f-body);color:var(--muted);cursor:pointer}
-.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
-label{display:grid;gap:5px;font-size:13px;font-weight:600}
-label small{font-weight:400;color:var(--muted)}
-input,select,textarea{width:100%;font:14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
-textarea{font:13px/1.5 var(--f-mono);min-height:150px;resize:vertical}
-input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 14px var(--f-body);padding:10px 14px;border-radius:9px;cursor:pointer}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.sm{padding:6px 10px;font-size:13px}
-.actions{display:flex;flex-wrap:wrap;gap:8px}
-.hint{font-size:13px;color:var(--muted);margin:0}
-.msg{font-size:13px;padding:10px 12px;border-radius:9px;background:var(--soft)}
-.msg.err{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad)}
-.swatch{width:14px;height:14px;border-radius:4px;display:inline-block;flex-shrink:0;border:1px solid rgba(0,0,0,.15)}
-.bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}
-.bar span{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body)}
+.main{max-width:1180px;margin:0 auto;padding:40px 24px 80px;display:grid;gap:18px}
+h1{font-size:40px;font-weight:700;line-height:1.15;margin:0;text-wrap:balance}
+h2{font-size:30px;font-weight:600;margin:18px 0 0;text-wrap:balance}
+h3{font-size:22px;font-weight:600;margin:0}
+.caption{color:var(--muted);font-size:14px;margin:0}
+hr{border:0;border-top:1px solid var(--line);margin:18px 0;width:100%}
+code{font-family:var(--f-mono);font-size:13px;background:var(--soft);padding:1px 5px;border-radius:4px}
+.alert{padding:14px 16px;border-radius:8px;font-size:15px}
+.info{background:var(--info-bg);color:var(--info-ink)} .ok{background:var(--ok-bg);color:var(--ok-ink)}
+.warn{background:var(--warn-bg);color:var(--warn-ink)} .bad{background:var(--bad-bg);color:var(--bad-ink)}
+details.exp{border:1px solid var(--line);border-radius:8px}
+details.exp>summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.exp>summary::-webkit-details-marker{display:none}
+details.exp>summary::after{content:"⌄";color:var(--muted)}
+details.exp[open]>summary::after{content:"⌃"}
+.exp-body{padding:0 16px 16px;display:grid;gap:12px}
+label{display:grid;gap:4px;font-size:14px}
+input,select{width:100%;font:15px var(--f-body);color:var(--ink);background:var(--soft);border:1px solid transparent;border-radius:8px;padding:9px 12px}
+input:focus,select:focus{outline:none;border-color:var(--primary)}
+button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:400 15px var(--f-body);padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;width:fit-content}
+.btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
+.btn.primary:hover:not(:disabled){filter:brightness(.93);color:var(--primary-ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.radio{display:flex;flex-wrap:wrap;gap:22px}
+.radio label,.check{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer}
+.radio input,.check input{width:auto;accent-color:var(--primary)}
+.rows{display:grid;gap:10px}
+.biz-row{display:grid;grid-template-columns:2fr 2fr 1.4fr 1.6fr;gap:12px}
+@media (max-width:820px){.biz-row{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.biz-row{grid-template-columns:1fr}}
+.num{display:flex;align-items:center;gap:6px;max-width:220px}
+.num input{text-align:center}
+.num button{padding:8px 12px}
+.progress{height:8px;background:var(--soft);border-radius:8px;overflow:hidden}
+.progress span{display:block;height:100%;width:0;background:var(--primary);transition:width .2s}
+.ptext{font-size:14px;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px;border-bottom:1px solid var(--line)}
-td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
-.tbl{overflow-x:auto}
-.status{font:500 12px var(--f-mono);padding:3px 8px;border-radius:6px;white-space:nowrap}
-.s-BUILT{background:var(--soft);color:var(--accent)} .s-SKIPPED{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)} .s-FAILED{background:color-mix(in srgb,var(--bad) 13%,transparent);color:var(--bad)}
-.niche-cell{display:flex;align-items:center;gap:8px}
-.empty{color:var(--muted);font-size:14px;padding:26px;text-align:center;border:1px dashed var(--line);border-radius:12px}
-.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;max-height:520px;overflow:auto}
-.chip{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:#fff;border:0;font:500 13px var(--f-body);text-align:left;cursor:pointer}
-.chip b{display:block;font-weight:600}
-.chip small{opacity:.8;font-size:11px}
-.mono{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
-dialog{border:0;padding:0;width:min(1280px,96vw);height:92vh;border-radius:14px;background:var(--panel);color:var(--ink)}
-dialog::backdrop{background:rgba(0,0,0,.55)}
-.dlg{display:grid;grid-template-rows:auto 1fr;height:100%}
-.dlg-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
-.frame-box{display:flex;justify-content:center;background:var(--bg);overflow:hidden}
-iframe{border:0;width:100%;height:100%;background:#fff;transition:width .2s}
-iframe.mobile{width:400px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:600;white-space:nowrap}
+td a{color:var(--primary);word-break:break-all}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+.pub-row{display:grid;grid-template-columns:3fr 3fr 1fr;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+@media (max-width:640px){.pub-row{grid-template-columns:1fr}}
+.prev-box{height:500px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.prev-box iframe{width:100%;height:100%;border:0;background:#fff}
+.spinner{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 70%,transparent);display:grid;place-items:center;z-index:9;font-size:17px}
+.spinner div{background:var(--bg);border:1px solid var(--line);padding:18px 24px;border-radius:10px;box-shadow:0 6px 30px rgba(0,0,0,.12)}
 [hidden]{display:none!important}
-details.wp{border:1px solid var(--line);border-radius:12px;background:var(--panel)}
-details.wp summary{cursor:pointer;padding:14px 18px;font:600 15px var(--f-disp);display:flex;align-items:center;gap:10px;list-style:none}
-details.wp summary::-webkit-details-marker{display:none}
-details.wp .wp-body{padding:0 18px 18px;display:grid;gap:12px}
-.wp-grid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end}
-@media (max-width:800px){.wp-grid{grid-template-columns:1fr}}
-.check{display:flex;align-items:center;gap:8px;font-weight:500;font-size:13px}
-.check input{width:auto}
-.live a{color:var(--accent);font-weight:600;word-break:break-all}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Landing Page Engine</h1>
-      <p class="sub">Business ka naam, address aur phone daalein, niche chunein, aur poora landing page ban jayega. Ek business ya poori CSV list ek saath.</p>
-    </div>
-    <span id="status" class="pill"><i></i><span>Engine load ho raha hai…</span></span>
-  </header>
+<div id="boot" class="spinner"><div id="boot-text">⏳ Engine load ho raha hai (pehli dafa 10-20 second)…</div></div>
 
-  <details class="wp" id="wp-box">
-    <summary><span id="wp-dot" class="swatch" style="background:var(--warn);border-radius:50%"></span>WordPress connection <span id="wp-state" class="mono">Connect nahi hai</span></summary>
-    <div class="wp-body">
-      <p class="hint">WordPress Admin → Users → Profile → <b>Application Passwords</b> se ek password banayein aur yahan daalein. Ye sirf aapke browser mein rehta hai, kahin aur nahi jata.</p>
-      <div class="wp-grid">
+<main class="main">
+  <h1>🏗️ Landing Page Engine</h1>
+  <p class="caption">Everything on one page: connect WordPress, add businesses, then generate — publishing happens in the same click.</p>
+
+  <!-- ===================== 0. WORDPRESS CONNECTION ===================== -->
+  <details class="exp" id="wp-exp" open>
+    <summary>🔌 WordPress connection</summary>
+    <div class="exp-body">
+      <p class="caption">Uses the WordPress REST API with an Application Password. Nothing is sent anywhere until you click a Generate or Publish button.</p>
+      <form id="wp-form" class="exp-body" style="padding:0" autocomplete="off">
         <label for="wp-url">WordPress site URL<input id="wp-url" placeholder="https://yourdomain.com" inputmode="url"></label>
-        <label for="wp-user">Username<input id="wp-user" placeholder="admin"></label>
-        <label for="wp-pass">Application Password<input id="wp-pass" type="password" placeholder="xxxx xxxx xxxx xxxx"></label>
-        <button class="btn primary" id="wp-test" type="button">Connect karein</button>
-      </div>
-      <label class="check" for="wp-remember"><input id="wp-remember" type="checkbox" checked> Is browser mein yaad rakhein</label>
-      <div id="wp-msg" class="msg" hidden></div>
+        <label for="wp-user">WordPress username<input id="wp-user"></label>
+        <label for="wp-pass">Application Password <span class="caption">WP Admin → Users → Profile → Application Passwords</span><input id="wp-pass" type="password"></label>
+        <label class="check" for="wp-remember"><input id="wp-remember" type="checkbox" checked> Remember on this browser</label>
+        <button class="btn" type="submit" id="wp-save">Save credentials</button>
+      </form>
+      <div id="wp-msg" class="alert" hidden></div>
+      <p id="wp-connected" class="caption" hidden></p>
     </div>
   </details>
 
-  <div class="grid">
-    <!-- LEFT: input -->
-    <section class="card" aria-label="Input">
-      <div class="tabs" role="tablist">
-        <button role="tab" id="tab-single" aria-selected="true" data-tab="single">Ek Business</button>
-        <button role="tab" id="tab-bulk" aria-selected="false" data-tab="bulk">Bulk CSV</button>
-        <button role="tab" id="tab-niches" aria-selected="false" data-tab="niches">Niches</button>
-      </div>
+  <!-- ===================== 1. GENERATE ===================== -->
+  <h2>1️⃣ Generate Sites</h2>
+  <h3>Add businesses</h3>
+  <div class="alert info" id="niche-info">Loading niches…</div>
 
-      <form id="single" class="card" style="padding:0;border:0" autocomplete="off">
-        <label for="f-name">Business name<input id="f-name" required placeholder="R&amp;R Roofing"></label>
-        <label for="f-addr">Address <small>City, ST, jaise “Fresno, CA” ya poora address</small><input id="f-addr" required placeholder="Fresno, CA"></label>
-        <label for="f-phone">Phone<input id="f-phone" required placeholder="(559) 555-0123"></label>
-        <label for="f-niche">Niche<select id="f-niche"></select></label>
-        <label class="check" for="auto-single"><input id="auto-single" class="auto-pub" type="checkbox" disabled> Banate hi WordPress par publish bhi karein</label>
-        <button class="btn primary" id="btn-single" type="submit" disabled>Page banayein</button>
-        <p class="hint">Page banne ke baad wo yahin preview mein khulega, aur wahan se download ho jayega.</p>
-      </form>
-
-      <div id="bulk" class="card" style="padding:0;border:0" hidden>
-        <label for="f-csv">CSV file <small>Columns: name, address, phone, niche</small><input id="f-csv" type="file" accept=".csv,text/csv"></label>
-        <label for="f-paste">Ya CSV yahan paste karein<textarea id="f-paste" spellcheck="false" placeholder="name,address,phone,niche&#10;R&amp;R Roofing,&quot;Fresno, CA&quot;,(559) 555-0123,roofing"></textarea></label>
-        <div class="actions">
-          <button class="btn sm" id="btn-sample" type="button" disabled>Sample list daalein</button>
-          <button class="btn sm" id="btn-template" type="button">CSV template download</button>
-        </div>
-        <p id="bulk-count" class="hint">Abhi koi row nahi.</p>
-        <label class="check" for="auto-bulk"><input id="auto-bulk" class="auto-pub" type="checkbox" disabled> Banate hi WordPress par publish bhi karein</label>
-        <button class="btn primary" id="btn-bulk" type="button" disabled>Sab pages banayein</button>
-        <div class="bar" aria-hidden="true"><span id="bar"></span></div>
-      </div>
-
-      <div id="niches" hidden>
-        <input id="f-search" type="search" placeholder="Niche dhoondein… (jaise roof, pool, paint)" aria-label="Search niches">
-        <p class="hint" style="margin-top:8px">Kisi niche par click karein, wo “Ek Business” form mein select ho jayegi.</p>
-        <div id="chips" class="chips" style="margin-top:10px"></div>
-      </div>
-      <div id="err" class="msg err" hidden></div>
-    </section>
-
-    <!-- RIGHT: results -->
-    <section class="card" aria-label="Results">
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
-        <h2>Bane hue pages <span id="res-count" class="mono"></span></h2>
-        <div class="actions">
-          <button class="btn sm primary" id="btn-pub-all" type="button" disabled>Sab WordPress par publish</button>
-          <button class="btn sm" id="btn-zip" type="button" disabled>Sab ZIP mein download</button>
-          <button class="btn sm" id="btn-clear" type="button" disabled>Saaf karein</button>
-        </div>
-      </div>
-      <div id="results-empty" class="empty">Abhi koi page nahi bana. Left side se ek business ya CSV list daal kar shuru karein.</div>
-      <div class="tbl" id="results-wrap" hidden>
-        <table>
-          <thead><tr><th>Business</th><th>Niche</th><th>Status</th><th>Live URL</th><th></th></tr></thead>
-          <tbody id="results"></tbody>
-        </table>
-      </div>
-      <p class="hint">Har page ek akeli <span class="mono">index.html</span> file hai jis mein photos, CSS aur SEO sab andar hai. Ise kisi bhi hosting ya WordPress “Custom HTML” block mein lagaya ja sakta hai.</p>
-    </section>
+  <div class="radio" role="radiogroup" aria-label="Input method">
+    <span style="font-size:14px;width:100%">Input method</span>
+    <label for="m-csv"><input type="radio" name="method" id="m-csv" value="csv"> Upload CSV</label>
+    <label for="m-man"><input type="radio" name="method" id="m-man" value="manual" checked> Manual entry</label>
   </div>
-</div>
 
-<dialog id="dlg" aria-label="Page preview">
-  <div class="dlg">
-    <div class="dlg-head">
-      <strong id="dlg-title"></strong>
-      <div class="actions">
-        <button class="btn sm" id="btn-desk" type="button">Desktop</button>
-        <button class="btn sm" id="btn-mob" type="button">Mobile</button>
-        <button class="btn sm" id="btn-copy" type="button">HTML copy</button>
-        <button class="btn sm primary" id="btn-pub" type="button">WordPress par publish</button>
-        <button class="btn sm" id="btn-dl" type="button">Download .html</button>
-        <button class="btn sm" id="btn-close" type="button">Band karein</button>
-      </div>
+  <section id="csv-sec" hidden>
+    <p class="caption">CSV columns required: <code>name, address, phone, niche</code> — address format: <code>City, ST</code></p>
+    <label for="csv-file">Upload leads CSV<input id="csv-file" type="file" accept=".csv,text/csv"></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn" type="button" id="csv-sample">Use sample_leads.csv</button>
     </div>
-    <div class="frame-box"><iframe id="frame" title="Generated page preview"></iframe></div>
+    <div id="csv-err" class="alert bad" hidden style="margin-top:10px"></div>
+    <div class="tbl" id="csv-preview" hidden style="margin-top:10px"></div>
+  </section>
+
+  <section id="man-sec">
+    <p class="caption">Add one or more rows, then click Generate below.</p>
+    <label for="n-rows" style="max-width:220px">How many businesses?
+      <span class="num"><button class="btn" type="button" id="n-minus" aria-label="Fewer">−</button><input id="n-rows" type="number" min="1" max="50" value="1"><button class="btn" type="button" id="n-plus" aria-label="More">+</button></span>
+    </label>
+    <div class="rows" id="rows" style="margin-top:12px"></div>
+  </section>
+
+  <hr>
+  <label class="check" for="also-pub"><input id="also-pub" type="checkbox" disabled> Also publish to WordPress right after generating (one click, no separate step)</label>
+  <p class="caption" id="also-pub-hint">Connect WordPress above to enable one-click publishing.</p>
+  <button class="btn primary" type="button" id="btn-gen" disabled>🚀 Generate Sites</button>
+  <div id="gen-progress" hidden>
+    <div class="progress"><span id="gen-bar"></span></div>
+    <p class="ptext" id="gen-text"></p>
   </div>
-</dialog>
+  <div id="gen-msg" class="alert" hidden></div>
+
+  <section id="results-sec" hidden>
+    <h3>Results</h3>
+    <div class="tbl" style="margin-top:10px"><table><thead><tr><th>name</th><th>phone</th><th>niche</th><th>slug</th><th>status</th><th>wp_status</th></tr></thead><tbody id="res-body"></tbody></table></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn" type="button" id="dl-results">⬇️ Download results.csv</button>
+      <button class="btn" type="button" id="dl-zip">⬇️ Download all sites (.zip)</button>
+    </div>
+  </section>
+
+  <hr>
+  <!-- ===================== 2. PREVIEW & DOWNLOAD ===================== -->
+  <h2>2️⃣ Preview &amp; Download</h2>
+  <h3>Preview &amp; download individual sites</h3>
+  <div class="alert info" id="prev-empty">Generate some sites in step 1 above first.</div>
+  <div id="prev-list" class="rows"></div>
+
+  <hr>
+  <!-- ===================== 3. PUBLISH ===================== -->
+  <h2>3️⃣ Publish to WordPress</h2>
+  <h3>Publish (manual / bulk)</h3>
+  <p class="caption">Use this if you generated sites without publishing them, or want to re-publish. WordPress credentials are set in the panel above.</p>
+  <div class="alert info" id="pub-empty">Generate sites in step 1 above first.</div>
+  <section id="pub-sec" hidden>
+    <p><strong id="pub-count"></strong></p>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <button class="btn primary" type="button" id="pub-all" disabled>🚀 Publish ALL</button>
+      <span class="caption" id="pub-all-hint"></span>
+    </div>
+    <div id="pub-progress" hidden style="margin-top:10px">
+      <div class="progress"><span id="pub-bar"></span></div>
+      <p class="ptext" id="pub-text"></p>
+    </div>
+    <div id="pub-list" style="margin-top:10px"></div>
+  </section>
+
+  <section id="live-sec" hidden>
+    <hr>
+    <h3>Live URLs</h3>
+    <div class="tbl" style="margin-top:10px"><table><thead><tr><th>name</th><th>niche</th><th>wp_status</th></tr></thead><tbody id="live-body"></tbody></table></div>
+  </section>
+</main>
 
 <script type="module">
 const $ = (s) => document.querySelector(s);
-const statusEl = $("#status");
-function setStatus(text, cls) { statusEl.className = "pill " + (cls || ""); statusEl.lastElementChild.textContent = text; }
-function showErr(t) { const e = $("#err"); e.textContent = t; e.hidden = !t; }
-
-let py, api, NICHES = [], results = [], bulkRows = [], current = null, downloads = null;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const tick = () => new Promise(r => setTimeout(r, 0));
 const base = new URL(".", location.href);
 
-// downloads capability (claude.ai) — falls back to a normal link outside it
+let py, api, NICHES = [], sites = [], csvRows = [], downloads = null;
+
+// ---------- downloads (claude.ai capability, else normal browser download) ----------
 (async () => { try { if (window.claude && window.claude.use) downloads = await window.claude.use("downloads"); } catch (e) {} })();
 async function saveFile(filename, data) {
-  if (downloads) {
-    try { await downloads.save({ filename, data }); return true; }
-    catch (e) { if (e && e.code === "declined") return false; }
-  }
-  try {
-    const blob = data instanceof Blob ? data : new Blob([data]);
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: filename });
-    document.body.appendChild(a); a.click(); a.remove(); return true;
-  } catch (e) { showErr("Is view mein download nahi ho saka. HTML copy button use karein."); return false; }
+  if (downloads) { try { await downloads.save({ filename, data }); return; } catch (e) { if (e && e.code === "declined") return; } }
+  const blob = data instanceof Blob ? data : new Blob([data]);
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: filename });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
-// ---------- tabs ----------
-document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
-  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
-  ["single", "bulk", "niches"].forEach(id => $("#" + id).hidden = id !== b.dataset.tab);
-}));
-
-// ---------- engine boot ----------
+// ---------- engine boot (the real Python engine, running in the browser) ----------
 async function boot() {
   try {
     const { loadPyodide } = await import(new URL("pyodide/pyodide.mjs", base).href);
-    setStatus("Python start ho raha hai…");
     py = await loadPyodide({ indexURL: new URL("pyodide/", base).href, stdLibURL: new URL("pyodide/python_stdlib.wasm", base).href });
-    setStatus("Engine files aa rahi hain…");
     const [eng, code, manifest] = await Promise.all([
       fetch(new URL("bin/engine.wasm", base)).then(r => { if (!r.ok) throw new Error("engine " + r.status); return r.arrayBuffer(); }),
       fetch(new URL("web_api.txt", base)).then(r => r.text()),
@@ -238,35 +218,83 @@ async function boot() {
     api = py.globals;
     api.get("set_photo_folders")(JSON.stringify(manifest));
     NICHES = JSON.parse(api.get("niches_json")());
-    renderNiches();
-    $("#btn-single").disabled = false; $("#btn-sample").disabled = false;
-    setStatus(`Tayyar hai · ${NICHES.length} niches`, "ok");
+    $("#niche-info").innerHTML = `<strong>${NICHES.length} niches ready:</strong> ` + NICHES.map(n => n.key).join(", ");
+    renderRows();
+    $("#boot").hidden = true;
+    updateGenButton();
   } catch (e) {
     console.error(e);
-    setStatus("Engine load nahi hua", "err");
-    showErr("Engine load nahi ho saka: " + (e.message || e) + ". Page reload karke dobara try karein.");
+    $("#boot-text").textContent = "❌ Engine load nahi hua: " + (e.message || e) + " — page reload karein.";
   }
 }
 
-function renderNiches() {
-  const sel = $("#f-niche");
-  sel.innerHTML = NICHES.map(n => `<option value="${n.key}">${n.label}</option>`).join("");
-  sel.value = "roofing";
-  const chips = $("#chips");
-  chips.innerHTML = NICHES.map(n =>
-    `<button class="chip" type="button" data-key="${n.key}" style="background:${n.bg}">
-       <span class="swatch" style="background:linear-gradient(135deg,${n.accent},${n.accent2});width:22px;height:22px"></span>
-       <span><b>${n.label}</b><small>${n.theme} · ${n.key}</small></span></button>`).join("");
-  chips.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
-    sel.value = c.dataset.key; $("#tab-single").click(); $("#f-name").focus();
-  }));
+// ---------- manual rows ----------
+const rowState = [];
+function renderRows() {
+  const n = Math.max(1, Math.min(50, parseInt($("#n-rows").value || "1", 10)));
+  $("#n-rows").value = n;
+  const box = $("#rows");
+  // keep what was typed
+  box.querySelectorAll(".biz-row").forEach((r, i) => {
+    rowState[i] = { nm: r.querySelector(".nm").value, ad: r.querySelector(".ad").value, ph: r.querySelector(".ph").value, nc: r.querySelector(".nc").value };
+  });
+  const opts = NICHES.map(x => `<option value="${x.key}">${x.key}</option>`).join("");
+  box.innerHTML = Array.from({ length: n }, (_, i) => `
+    <div class="biz-row">
+      <label for="nm${i}">Name #${i + 1}<input id="nm${i}" class="nm"></label>
+      <label for="ad${i}">Address (City, ST) #${i + 1}<input id="ad${i}" class="ad"></label>
+      <label for="ph${i}">Phone #${i + 1}<input id="ph${i}" class="ph"></label>
+      <label for="nc${i}">Niche #${i + 1}<select id="nc${i}" class="nc">${opts}</select></label>
+    </div>`).join("");
+  box.querySelectorAll(".biz-row").forEach((r, i) => {
+    const s = rowState[i];
+    if (s) { r.querySelector(".nm").value = s.nm; r.querySelector(".ad").value = s.ad; r.querySelector(".ph").value = s.ph; r.querySelector(".nc").value = s.nc; }
+    else r.querySelector(".nc").value = NICHES[0]?.key || "";
+  });
+  box.querySelectorAll("input").forEach(i => i.addEventListener("input", updateGenButton));
+  updateGenButton();
 }
-$("#f-search").addEventListener("input", e => {
-  const q = e.target.value.toLowerCase();
-  document.querySelectorAll(".chip").forEach(c => c.hidden = !c.textContent.toLowerCase().includes(q));
-});
+$("#n-rows").addEventListener("change", renderRows);
+$("#n-minus").addEventListener("click", () => { $("#n-rows").value = +$("#n-rows").value - 1; renderRows(); });
+$("#n-plus").addEventListener("click", () => { $("#n-rows").value = +$("#n-rows").value + 1; renderRows(); });
 
-// ---------- building ----------
+function method() { return document.querySelector('input[name="method"]:checked').value; }
+document.querySelectorAll('input[name="method"]').forEach(r => r.addEventListener("change", () => {
+  $("#csv-sec").hidden = method() !== "csv"; $("#man-sec").hidden = method() !== "manual"; updateGenButton();
+}));
+
+function rowsToBuild() {
+  if (method() === "csv") return csvRows;
+  return [...document.querySelectorAll(".biz-row")].map(r => ({
+    name: r.querySelector(".nm").value.trim(), address: r.querySelector(".ad").value.trim(),
+    phone: r.querySelector(".ph").value.trim(), niche: r.querySelector(".nc").value,
+  })).filter(r => r.name && r.address && r.phone);
+}
+
+// ---------- CSV ----------
+function loadCsv(text) {
+  $("#csv-err").hidden = true; $("#csv-preview").hidden = true; csvRows = [];
+  const out = JSON.parse(api.get("parse_csv")(text));
+  if (out.error) { $("#csv-err").textContent = out.error; $("#csv-err").hidden = false; }
+  else {
+    csvRows = out.rows;
+    $("#csv-preview").innerHTML = `<table><thead><tr><th></th><th>name</th><th>address</th><th>phone</th><th>niche</th></tr></thead><tbody>` +
+      csvRows.map((r, i) => `<tr><td class="mono">${i}</td><td>${esc(r.name)}</td><td>${esc(r.address)}</td><td>${esc(r.phone)}</td><td>${esc(r.niche)}</td></tr>`).join("") + `</tbody></table>`;
+    $("#csv-preview").hidden = false;
+  }
+  updateGenButton();
+}
+$("#csv-file").addEventListener("change", async (e) => { const f = e.target.files[0]; if (f && api) loadCsv(await f.text()); });
+$("#csv-sample").addEventListener("click", () => api && loadCsv(api.get("sample_csv")()));
+
+// ---------- generate (+ publish in the same click) ----------
+function updateGenButton() {
+  const b = $("#btn-gen");
+  b.disabled = !api || rowsToBuild().length === 0;
+  b.textContent = ($("#also-pub").checked && wp.ok) ? "🚀 Generate & Publish to WordPress" : "🚀 Generate Sites";
+}
+$("#also-pub").addEventListener("change", updateGenButton);
+
 async function ensurePhotos(niches) {
   const need = JSON.parse(api.get("folders_needed")(JSON.stringify(niches)));
   for (const f of need) {
@@ -275,135 +303,108 @@ async function ensurePhotos(niches) {
     api.get("install_photos")(f);
   }
 }
-const tick = () => new Promise(r => setTimeout(r, 0));
 
-async function buildRows(rows, onProgress) {
-  await ensurePhotos(rows.map(r => r.niche));
-  for (let i = 0; i < rows.length; i++) {
-    const res = JSON.parse(api.get("build_one")(JSON.stringify(rows[i])));
-    results.push(res);
-    onProgress && onProgress(i + 1, rows.length);
-    renderResults();
-    await tick();
-  }
-}
+$("#btn-gen").addEventListener("click", async () => {
+  const rows = rowsToBuild(); if (!rows.length) return;
+  const publish = $("#also-pub").checked && wp.ok;
+  const btn = $("#btn-gen"); btn.disabled = true;
+  $("#gen-msg").hidden = true; $("#gen-progress").hidden = false;
+  const setP = (frac, text) => { $("#gen-bar").style.width = (frac * 100) + "%"; $("#gen-text").textContent = text; };
+  setP(0, "Starting...");
+  api.get("reset_output")(); sites = [];
+  try {
+    await ensurePhotos(rows.map(r => r.niche));
+    for (let i = 0; i < rows.length; i++) {
+      setP(i / rows.length, `Building ${rows[i].name}...`); await tick();
+      const r = JSON.parse(api.get("build_one")(JSON.stringify(rows[i])));
+      const site = { name: r.name, phone: r.phone, niche: r.niche, slug: r.slug, status: "", wp_status: "" };
+      if (r.status === "BUILT") site.status = "✅ Built";
+      else if (r.status === "SKIPPED") site.status = r.error.startsWith("unknown niche") ? "SKIPPED — no content for this niche" : "SKIPPED — " + r.error;
+      else site.status = "❌ " + r.error;
+      sites.push(site);
+      if (publish && r.status === "BUILT") {
+        setP(i / rows.length, `Publishing ${r.name}...`); await tick();
+        await publishOne(site);
+      }
+      renderAll();
+    }
+    setP(1, "Done");
+    const built = sites.filter(s => s.status.startsWith("✅")).length;
+    const m = $("#gen-msg"); m.hidden = false;
+    if (publish) {
+      const pub = sites.filter(s => s.wp_status.startsWith("✅")).length;
+      const failed = sites.filter(s => s.status.startsWith("✅") && s.wp_status.startsWith("❌")).length;
+      m.className = "alert ok";
+      m.innerHTML = `Built ${built} of ${rows.length} sites — published ${pub} of ${built} to WordPress.` +
+        (failed ? `<br>⚠️ ${failed} site(s) built but failed to publish — see the wp_status column, or retry them in step 3 below.` : "");
+    } else { m.className = "alert ok"; m.textContent = `Built ${built} of ${rows.length} sites.`; }
+  } catch (e) { const m = $("#gen-msg"); m.hidden = false; m.className = "alert bad"; m.textContent = "❌ " + (e.message || e); }
+  updateGenButton();
+});
 
-function nicheInfo(key) { return NICHES.find(n => n.key === key); }
-function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+// ---------- results / preview / publish lists ----------
+function renderAll() {
+  const built = sites.filter(s => s.status.startsWith("✅"));
+  $("#results-sec").hidden = sites.length === 0;
+  $("#res-body").innerHTML = sites.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td>${esc(s.niche)}</td><td class="mono">${esc(s.slug)}</td><td>${esc(s.status)}</td><td>${linkify(s.wp_status)}</td></tr>`).join("");
 
-function renderResults() {
-  const tb = $("#results");
-  $("#results-empty").hidden = results.length > 0;
-  $("#results-wrap").hidden = results.length === 0;
-  const ok = results.filter(r => r.status === "BUILT").length;
-  $("#res-count").textContent = results.length ? `${ok} bane / ${results.length}` : "";
-  $("#btn-zip").disabled = ok === 0; $("#btn-clear").disabled = results.length === 0;
-  tb.innerHTML = results.map((r, i) => {
-    const n = nicheInfo(r.niche);
-    const note = r.error || (r.warnings || []).filter(w => !w.includes("photo library")).join(" ");
-    return `<tr>
-      <td><strong>${esc(r.name)}</strong><br><span class="mono">${esc(r.address)}</span>${note ? `<br><span class="hint">${esc(note)}</span>` : ""}</td>
-      <td><span class="niche-cell">${n ? `<span class="swatch" style="background:${n.accent}"></span>${esc(n.label)}` : esc(r.niche)}</span></td>
-      <td><span class="status s-${r.status}">${r.status === "BUILT" ? "Ban gaya" : r.status === "SKIPPED" ? "Chhoda" : "Fail"}</span></td>
-      <td class="live">${r.wp_link ? `<a href="${esc(r.wp_link)}" target="_blank" rel="noopener">${esc(r.wp_link)}</a>` : r.wp_error ? `<span class="hint" style="color:var(--bad)">${esc(r.wp_error)}</span>` : r.wp_busy ? `<span class="hint">Publish ho raha hai…</span>` : `<span class="hint">—</span>`}</td>
-      <td style="text-align:right;white-space:nowrap">${r.status === "BUILT" ? `<button class="btn sm" data-prev="${i}" type="button">Dekhein</button> <button class="btn sm" data-pub="${i}" type="button" ${wp.ok ? "" : "disabled"}>${r.wp_link ? "Dobara publish" : "Publish"}</button> <button class="btn sm" data-dl="${i}" type="button">Download</button>` : ""}</td></tr>`;
-  }).join("");
-  tb.querySelectorAll("[data-pub]").forEach(b => b.addEventListener("click", () => publishRow(results[+b.dataset.pub])));
-  $("#btn-pub-all").disabled = !wp.ok || ok === 0;
-  tb.querySelectorAll("[data-prev]").forEach(b => b.addEventListener("click", () => openPreview(results[+b.dataset.prev])));
-  tb.querySelectorAll("[data-dl]").forEach(b => b.addEventListener("click", () => {
-    const r = results[+b.dataset.dl]; saveFile(`${r.slug}.html`, api.get("page_html")(r.slug));
+  $("#prev-empty").hidden = sites.length > 0;
+  $("#prev-empty").textContent = sites.length && !built.length ? "No successfully built sites yet." : "Generate some sites in step 1 above first.";
+  if (sites.length && !built.length) $("#prev-empty").hidden = false;
+  const prev = $("#prev-list");
+  const openSlugs = new Set([...prev.querySelectorAll("details[open]")].map(d => d.dataset.slug));
+  prev.innerHTML = built.map((s, i) => `
+    <details class="exp" data-slug="${esc(s.slug)}" ${openSlugs.has(s.slug) ? "open" : ""}>
+      <summary>📄 ${esc(s.name)} — ${esc(s.niche)}</summary>
+      <div class="exp-body">
+        <button class="btn" type="button" data-dl="${esc(s.slug)}">⬇️ Download index.html</button>
+        <div class="prev-box"><iframe title="Preview of ${esc(s.name)}" data-frame="${esc(s.slug)}"></iframe></div>
+      </div>
+    </details>`).join("");
+  prev.querySelectorAll("details").forEach(d => {
+    const load = () => { const f = d.querySelector("iframe"); if (d.open && !f.srcdoc) f.srcdoc = api.get("page_html")(d.dataset.slug); };
+    d.addEventListener("toggle", load); load();
+  });
+  prev.querySelectorAll("[data-dl]").forEach(b => b.addEventListener("click", () => saveFile(`${b.dataset.dl}.html`, api.get("page_html")(b.dataset.dl))));
+
+  $("#pub-empty").hidden = sites.length > 0;
+  $("#pub-sec").hidden = sites.length === 0;
+  $("#pub-count").textContent = `${built.length} site(s) ready to publish.`;
+  $("#pub-all").disabled = !wp.ok || !built.length;
+  $("#pub-all-hint").textContent = wp.ok ? "Creates a new page with a unique URL for every site." : "Save WordPress credentials above to enable publishing.";
+  $("#pub-list").innerHTML = built.map((s, i) => `
+    <div class="pub-row"><div><strong>${esc(s.name)}</strong> — ${esc(s.niche)}</div><div>${s.wp_status ? linkify(s.wp_status) : "Not published"}</div>
+    <div><button class="btn" type="button" data-pub="${esc(s.slug)}" ${wp.ok ? "" : "disabled"}>Publish</button></div></div>`).join("");
+  $("#pub-list").querySelectorAll("[data-pub]").forEach(b => b.addEventListener("click", async () => {
+    const s = sites.find(x => x.slug === b.dataset.pub); b.disabled = true; b.textContent = "Publishing…";
+    await publishOne(s); renderAll();
   }));
+
+  const live = sites.filter(s => s.wp_status.startsWith("✅"));
+  $("#live-sec").hidden = live.length === 0;
+  $("#live-body").innerHTML = live.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.niche)}</td><td>${linkify(s.wp_status)}</td></tr>`).join("");
 }
-
-// single
-$("#single").addEventListener("submit", async (e) => {
-  e.preventDefault(); showErr("");
-  const row = { name: $("#f-name").value, address: $("#f-addr").value, phone: $("#f-phone").value, niche: $("#f-niche").value };
-  const btn = $("#btn-single"); btn.disabled = true; btn.textContent = "Ban raha hai…";
-  try {
-    await buildRows([row]);
-    const last = results[results.length - 1];
-    if (last.status === "BUILT") { if ($("#auto-single").checked && wp.ok) await publishRow(last); openPreview(last); }
-    else showErr(last.error || "Page nahi ban saka.");
-  } catch (err) { showErr(String(err.message || err)); }
-  btn.disabled = false; btn.textContent = "Page banayein";
-});
-
-// bulk
-function loadCsvText(text) {
-  showErr("");
-  const out = JSON.parse(api.get("parse_csv")(text));
-  if (out.error) { bulkRows = []; showErr(out.error); }
-  else bulkRows = out.rows;
-  const unknown = bulkRows.filter(r => !nicheInfo(r.niche.toLowerCase().trim().replace(/[ -]/g, "_"))).length;
-  $("#bulk-count").textContent = bulkRows.length
-    ? `${bulkRows.length} business mile.` + (unknown ? ` ${unknown} ki niche list mein nahi hai, wo chhod di jayengi.` : "")
-    : "Abhi koi row nahi.";
-  $("#btn-bulk").disabled = !bulkRows.length || !api;
+function linkify(t) {
+  const e = esc(t);
+  return e.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 }
-$("#f-csv").addEventListener("change", async (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  const t = await f.text(); $("#f-paste").value = t; if (api) loadCsvText(t);
+$("#dl-results").addEventListener("click", () => {
+  const cols = ["name", "phone", "niche", "slug", "path", "status", "wp_status"];
+  const q = v => /[",\n]/.test(v) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? "");
+  const csv = [cols.join(",")].concat(sites.map(s => cols.map(c => q(c === "path" ? (s.slug ? `output/${s.slug}/index.html` : "") : s[c])).join(","))).join("\n");
+  saveFile("results.csv", csv);
 });
-$("#f-paste").addEventListener("input", (e) => { if (api) loadCsvText(e.target.value); });
-$("#btn-sample").addEventListener("click", () => { const t = api.get("sample_csv")(); $("#f-paste").value = t; loadCsvText(t); });
-$("#btn-template").addEventListener("click", () =>
-  saveFile("leads_template.csv", 'name,address,phone,niche\nR&R Roofing,"Fresno, CA",(559) 555-0123,roofing\n'));
-$("#btn-bulk").addEventListener("click", async () => {
-  showErr(""); const btn = $("#btn-bulk"); btn.disabled = true;
-  try {
-    const startAt = results.length;
-    await buildRows(bulkRows, (i, n) => { $("#bar").style.width = (100 * i / n) + "%"; btn.textContent = `Ban rahe hain… ${i}/${n}`; });
-    if ($("#auto-bulk").checked && wp.ok) await publishMany(results.slice(startAt), btn);
-  } catch (err) { showErr(String(err.message || err)); }
-  btn.textContent = "Sab pages banayein"; btn.disabled = false;
+$("#dl-zip").addEventListener("click", () => {
+  const res = sites.map(s => ({ ...s, status: s.status.startsWith("✅") ? "BUILT" : "SKIPPED" }));
+  saveFile(`landing-pages.zip`, new Blob([api.get("zip_all")(JSON.stringify(res)).toJs()]));
 });
 
-// zip / clear
-$("#btn-zip").addEventListener("click", async () => {
-  const bytes = api.get("zip_all")(JSON.stringify(results)).toJs();
-  await saveFile(`landing-pages-${results.filter(r => r.status === "BUILT").length}.zip`, new Blob([bytes]));
-});
-$("#btn-clear").addEventListener("click", () => { results = []; api.get("reset_output")(); renderResults(); $("#bar").style.width = "0"; });
-
-// preview
-const dlg = $("#dlg"), frame = $("#frame");
-function openPreview(r) {
-  current = r;
-  $("#dlg-title").textContent = `${r.name} · ${nicheInfo(r.niche)?.label || r.niche}`;
-  frame.srcdoc = api.get("page_html")(r.slug);
-  frame.classList.remove("mobile");
-  $("#btn-pub").textContent = r.wp_link ? "Publish ho gaya ✓" : "WordPress par publish";
-  dlg.showModal();
-}
-$("#btn-close").addEventListener("click", () => dlg.close());
-$("#btn-desk").addEventListener("click", () => frame.classList.remove("mobile"));
-$("#btn-mob").addEventListener("click", () => frame.classList.add("mobile"));
-$("#btn-dl").addEventListener("click", () => current && saveFile(`${current.slug}.html`, api.get("page_html")(current.slug)));
-$("#btn-copy").addEventListener("click", async () => {
-  try { await navigator.clipboard.writeText(api.get("page_html")(current.slug)); $("#btn-copy").textContent = "Copy ho gaya"; }
-  catch (e) { $("#btn-copy").textContent = "Copy nahi hua"; }
-  setTimeout(() => $("#btn-copy").textContent = "HTML copy", 1800);
-});
-
-// ---------- WordPress ----------
+// ---------- WordPress (same calls as publish_one in app.py) ----------
 const wp = { ok: false, base: "", auth: "", mode: "pretty" };
 const LS = "lpe-wp";
-function wpState(ok, text) {
-  wp.ok = ok;
-  $("#wp-dot").style.background = ok ? "var(--accent)" : "var(--warn)";
-  $("#wp-state").textContent = text;
-  document.querySelectorAll(".auto-pub").forEach(c => { c.disabled = !ok; if (ok) c.checked = true; });
-  renderResults();
-}
-function wpMsg(t, bad) { const m = $("#wp-msg"); m.hidden = !t; m.textContent = t; m.className = "msg" + (bad ? " err" : ""); }
 function endpoint(path, query) {
-  // path like "wp/v2/pages"; supports sites without pretty permalinks
   const q = query ? new URLSearchParams(query).toString() : "";
-  return wp.mode === "pretty"
-    ? `${wp.base}/wp-json/${path}${q ? "?" + q : ""}`
-    : `${wp.base}/?rest_route=/${path}${q ? "&" + q : ""}`;
+  return wp.mode === "pretty" ? `${wp.base}/wp-json/${path}${q ? "?" + q : ""}` : `${wp.base}/?rest_route=/${path}${q ? "&" + q : ""}`;
 }
 async function wpFetch(path, opts = {}, query) {
   const r = await fetch(endpoint(path, query), { ...opts, headers: { Authorization: wp.auth, "Content-Type": "application/json", ...(opts.headers || {}) } });
@@ -411,92 +412,75 @@ async function wpFetch(path, opts = {}, query) {
   return { r, body };
 }
 function explain(err, r, body) {
-  if (err) return location.hostname.endsWith("claude.ai") || location.hostname.includes("claudeusercontent")
-    ? "Is link (claude.ai) par WordPress tak pahunchna browser ne rok diya. GitHub wala link use karein."
-    : "Site tak pahunch nahi saka. URL check karein (https:// ke saath), ya site ka security plugin REST API ko rok raha hai.";
-  if (r.status === 401 || r.status === 403) return "Username ya Application Password galat hai (normal login password yahan nahi chalta).";
-  if (r.status === 404) return "Is site par WordPress REST API nahi mila. URL check karein.";
-  return (body && body.message) || `WordPress ne error diya (HTTP ${r.status}).`;
+  if (err) return /claude\.ai|claudeusercontent/.test(location.hostname)
+    ? "Is link (claude.ai) se WordPress tak pahunchna blocked hai — GitHub wala link use karein."
+    : "Site tak pahunch nahi saka — URL check karein (https:// ke saath), ya hosting/security plugin REST API ko rok raha hai.";
+  if (r.status === 401 || r.status === 403) return `HTTP ${r.status}: username ya Application Password galat hai (normal login password yahan nahi chalta).`;
+  if (r.status === 404) return "HTTP 404: is site par WordPress REST API nahi mila — URL check karein.";
+  return `HTTP ${r.status}: ${(body && body.message) || "WordPress error"}`;
 }
+function wpMsg(t, cls) { const m = $("#wp-msg"); m.hidden = !t; m.className = "alert " + (cls || "ok"); m.textContent = t; }
 async function wpConnect(silent) {
-  const url = $("#wp-url").value.trim().replace(/\/+$/, "");
-  const user = $("#wp-user").value.trim(), pass = $("#wp-pass").value.trim();
-  if (!url || !user || !pass) { if (!silent) wpMsg("Teeno cheezein daalein: site URL, username aur Application Password.", true); return; }
+  const url = $("#wp-url").value.trim().replace(/\/+$/, ""), user = $("#wp-user").value.trim(), pass = $("#wp-pass").value.trim();
+  if (!url || !user || !pass) { if (!silent) wpMsg("Fill in all three: site URL, username and Application Password.", "bad"); return; }
   wp.base = /^https?:\/\//i.test(url) ? url : "https://" + url;
   wp.auth = "Basic " + btoa(unescape(encodeURIComponent(user + ":" + pass)));
-  $("#wp-test").disabled = true; $("#wp-test").textContent = "Check ho raha hai…";
+  $("#wp-save").disabled = true; $("#wp-save").textContent = "Checking…";
   let res = null, err = null;
   for (const mode of ["pretty", "plain"]) {
     wp.mode = mode;
     try { res = await wpFetch("wp/v2/users/me", {}, { context: "edit" }); err = null; } catch (e) { err = e; res = null; }
     if (res && (res.r.ok || res.r.status === 401 || res.r.status === 403)) break;
   }
-  $("#wp-test").disabled = false; $("#wp-test").textContent = "Connect karein";
+  $("#wp-save").disabled = false; $("#wp-save").textContent = "Save credentials";
   if (res && res.r.ok) {
-    const who = (res.body && (res.body.name || res.body.slug)) || user;
-    wpMsg(`Connect ho gaya: ${wp.base} (user: ${who}). Ab pages seedha publish honge.`);
-    wpState(true, `Connected · ${wp.base.replace(/^https?:\/\//, "")}`);
-    try {
-      if ($("#wp-remember").checked) localStorage.setItem(LS, JSON.stringify({ url, user, pass }));
-      else localStorage.removeItem(LS);
-    } catch (e) {}
-    $("#wp-box").open = false;
+    wp.ok = true;
+    wpMsg(`Saved for this session${$("#wp-remember").checked ? " and remembered on this browser" : ""}. Logged in as ${(res.body && res.body.name) || user}.`, "ok");
+    $("#wp-connected").hidden = false; $("#wp-connected").textContent = `Connected to: ${wp.base}`;
+    try { if ($("#wp-remember").checked) localStorage.setItem(LS, JSON.stringify({ url, user, pass })); else localStorage.removeItem(LS); } catch (e) {}
+    $("#also-pub").disabled = false; $("#also-pub").checked = true; $("#also-pub-hint").hidden = true;
+    if (silent) $("#wp-exp").open = false;
   } else {
-    wpMsg(explain(err, res && res.r, res && res.body), true);
-    wpState(false, "Connect nahi hai");
+    wp.ok = false;
+    wpMsg("❌ " + explain(err, res && res.r, res && res.body), "bad");
+    $("#wp-connected").hidden = true; $("#also-pub").disabled = true; $("#also-pub").checked = false; $("#also-pub-hint").hidden = false;
   }
+  updateGenButton(); renderAll();
 }
-$("#wp-test").addEventListener("click", () => wpConnect(false));
-try {
-  const saved = JSON.parse(localStorage.getItem(LS) || "null");
-  if (saved) { $("#wp-url").value = saved.url; $("#wp-user").value = saved.user; $("#wp-pass").value = saved.pass; }
-} catch (e) {}
+$("#wp-form").addEventListener("submit", (e) => { e.preventDefault(); wpConnect(false); });
+try { const s = JSON.parse(localStorage.getItem(LS) || "null"); if (s) { $("#wp-url").value = s.url; $("#wp-user").value = s.user; $("#wp-pass").value = s.pass; } } catch (e) {}
 
 async function slugTaken(slug) {
-  try {
-    const { r, body } = await wpFetch("wp/v2/pages", {}, { slug, status: "publish,draft,pending,private,future", _fields: "id" });
-    return r.ok && Array.isArray(body) && body.length > 0;
-  } catch (e) { return false; }
+  try { const { r, body } = await wpFetch("wp/v2/pages", {}, { slug, status: "publish,draft,pending,private,future", _fields: "id" }); return r.ok && Array.isArray(body) && body.length > 0; }
+  catch (e) { return false; }
 }
-function rand() { return Math.random().toString(16).slice(2, 6); }
-async function publishRow(r) {
-  if (!wp.ok || r.status !== "BUILT") return;
-  r.wp_busy = true; r.wp_error = ""; renderResults();
+async function publishOne(site) {
   try {
-    const payload = JSON.parse(api.get("wp_payload")(r.slug, r.name));
+    const payload = JSON.parse(api.get("wp_payload")(site.slug, site.name));
     let slug = payload.slug;
     if (await slugTaken(slug)) {
-      for (let i = 0; i < 8; i++) { const c = `${payload.slug}-${rand()}`; if (!(await slugTaken(c))) { slug = c; break; } }
+      for (let i = 0; i < 8; i++) { const c = `${payload.slug}-${Math.random().toString(16).slice(2, 6)}`; if (!(await slugTaken(c))) { slug = c; break; } }
     }
     payload.slug = slug;
-    const { r: resp, body } = await wpFetch("wp/v2/pages", { method: "POST", body: JSON.stringify(payload) });
-    if (resp.ok && body && body.link) { r.wp_link = body.link; }
-    else r.wp_error = explain(null, resp, body);
-  } catch (e) { r.wp_error = explain(e); }
-  r.wp_busy = false; renderResults();
+    const { r, body } = await wpFetch("wp/v2/pages", { method: "POST", body: JSON.stringify(payload) });
+    site.wp_status = (r.status === 200 || r.status === 201) && body ? `✅ Live: ${body.link || ""}` : "❌ " + explain(null, r, body);
+  } catch (e) { site.wp_status = "❌ " + explain(e); }
 }
-async function publishMany(list, btn) {
-  const todo = list.filter(r => r.status === "BUILT");
-  for (let i = 0; i < todo.length; i++) {
-    if (btn) btn.textContent = `Publish ho rahe hain… ${i + 1}/${todo.length}`;
-    await publishRow(todo[i]);
+$("#pub-all").addEventListener("click", async () => {
+  const built = sites.filter(s => s.status.startsWith("✅")); if (!built.length) return;
+  $("#pub-all").disabled = true; $("#pub-progress").hidden = false;
+  let ok = 0;
+  for (let i = 0; i < built.length; i++) {
+    $("#pub-bar").style.width = (100 * i / built.length) + "%";
+    $("#pub-text").textContent = `Published ${i}/${built.length} — ${built[i].name.slice(0, 30)}`;
+    await publishOne(built[i]); if (built[i].wp_status.startsWith("✅")) ok++;
+    renderAll();
   }
-}
-$("#btn-pub-all").addEventListener("click", async () => {
-  const b = $("#btn-pub-all"); b.disabled = true;
-  await publishMany(results.filter(r => !r.wp_link), b);
-  b.textContent = "Sab WordPress par publish"; renderResults();
-});
-$("#btn-pub").addEventListener("click", async () => {
-  if (!current) return;
-  if (!wp.ok) { dlg.close(); $("#wp-box").open = true; $("#wp-url").focus(); wpMsg("Pehle WordPress connect karein.", true); return; }
-  const b = $("#btn-pub"); b.disabled = true; b.textContent = "Publish ho raha hai…";
-  await publishRow(current);
-  b.disabled = false; b.textContent = current.wp_link ? "Publish ho gaya ✓" : "WordPress par publish";
-  if (current.wp_error) { dlg.close(); showErr(current.wp_error); }
+  $("#pub-bar").style.width = "100%"; $("#pub-text").textContent = `Done: ${ok}/${built.length} published`;
+  renderAll();
 });
 
-boot().then(() => { if ($("#wp-url").value && $("#wp-pass").value) wpConnect(true); });
+boot().then(() => { renderAll(); if ($("#wp-url").value && $("#wp-pass").value) wpConnect(true); });
 </script>
 </body>
 </html>
