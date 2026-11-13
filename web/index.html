@@ -6,185 +6,288 @@
 <title>Landing Page Engine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-/* Same layout and look as the Streamlit app (engine/app.py): one wide column,
-   WordPress expander, then steps 1, 2, 3. */
+/* Direction: a control room for local-service landing pages. Deep ink-blue canvas,
+   one hot signal colour for actions, and every niche shown in its own palette.
+   Layout: sticky step rail on the left, working panels on the right. */
 :root{
-  --bg:#ffffff; --ink:#31333f; --muted:#808495; --line:#e6e9ef; --soft:#f0f2f6;
-  --primary:#ff4b4b; --primary-ink:#ffffff; --info-bg:#e8f2fc; --info-ink:#0f4c81;
-  --ok-bg:#dff3e5; --ok-ink:#176f2c; --warn-bg:#fff6d6; --warn-ink:#7a5b00; --bad-bg:#ffe1e1; --bad-ink:#a1171a;
-  --f-body:'Source Sans 3','Source Sans Pro',system-ui,sans-serif; --f-mono:'Source Code Pro',ui-monospace,monospace;
-  color-scheme:light;
+  --canvas:#0b1020; --panel:#121a30; --panel-2:#18213b; --line:#26304d; --ink:#eef1fa; --muted:#93a0bf;
+  --signal:#ff6b35; --signal-ink:#1a0b03; --good:#3ddc97; --warn:#ffc857; --bad:#ff5d73;
+  --f-disp:'Unbounded',system-ui,sans-serif; --f-body:'Figtree',system-ui,sans-serif; --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0e1117; --ink:#fafafa; --muted:#a3a8b8; --line:#2b2f3a; --soft:#262730;
-  --info-bg:#172d43; --info-ink:#c7e3ff; --ok-bg:#173928; --ok-ink:#a6e8b9; --warn-bg:#3d3414; --warn-ink:#ffe08a; --bad-bg:#3e1a1d; --bad-ink:#ffb3b5; color-scheme:dark;}}
-:root[data-theme="dark"]{
-  --bg:#0e1117; --ink:#fafafa; --muted:#a3a8b8; --line:#2b2f3a; --soft:#262730;
-  --info-bg:#172d43; --info-ink:#c7e3ff; --ok-bg:#173928; --ok-ink:#a6e8b9; --warn-bg:#3d3414; --warn-ink:#ffe08a; --bad-bg:#3e1a1d; --bad-ink:#ffb3b5; color-scheme:dark;}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body)}
-.main{max-width:1180px;margin:0 auto;padding:40px 24px 80px;display:grid;gap:18px}
-h1{font-size:40px;font-weight:700;line-height:1.15;margin:0;text-wrap:balance}
-h2{font-size:30px;font-weight:600;margin:18px 0 0;text-wrap:balance}
-h3{font-size:22px;font-weight:600;margin:0}
-.caption{color:var(--muted);font-size:14px;margin:0}
-hr{border:0;border-top:1px solid var(--line);margin:18px 0;width:100%}
-code{font-family:var(--f-mono);font-size:13px;background:var(--soft);padding:1px 5px;border-radius:4px}
-.alert{padding:14px 16px;border-radius:8px;font-size:15px}
-.info{background:var(--info-bg);color:var(--info-ink)} .ok{background:var(--ok-bg);color:var(--ok-ink)}
-.warn{background:var(--warn-bg);color:var(--warn-ink)} .bad{background:var(--bad-bg);color:var(--bad-ink)}
-details.exp{border:1px solid var(--line);border-radius:8px}
-details.exp>summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
-details.exp>summary::-webkit-details-marker{display:none}
-details.exp>summary::after{content:"⌄";color:var(--muted)}
-details.exp[open]>summary::after{content:"⌃"}
-.exp-body{padding:0 16px 16px;display:grid;gap:12px}
-label{display:grid;gap:4px;font-size:14px}
-input,select{width:100%;font:15px var(--f-body);color:var(--ink);background:var(--soft);border:1px solid transparent;border-radius:8px;padding:9px 12px}
-input:focus,select:focus{outline:none;border-color:var(--primary)}
-button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:400 15px var(--f-body);padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;width:fit-content}
-.btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
-.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
-.btn.primary:hover:not(:disabled){filter:brightness(.93);color:var(--primary-ink)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.radio{display:flex;flex-wrap:wrap;gap:22px}
-.radio label,.check{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer}
-.radio input,.check input{width:auto;accent-color:var(--primary)}
-.rows{display:grid;gap:10px}
-.biz-row{display:grid;grid-template-columns:2fr 2fr 1.4fr 1.6fr;gap:12px}
-@media (max-width:820px){.biz-row{grid-template-columns:1fr 1fr}}
-@media (max-width:480px){.biz-row{grid-template-columns:1fr}}
-.num{display:flex;align-items:center;gap:6px;max-width:220px}
-.num input{text-align:center}
-.num button{padding:8px 12px}
-.progress{height:8px;background:var(--soft);border-radius:8px;overflow:hidden}
-.progress span{display:block;height:100%;width:0;background:var(--primary);transition:width .2s}
-.ptext{font-size:14px;color:var(--muted)}
-.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{background:var(--soft);font-weight:600;white-space:nowrap}
-td a{color:var(--primary);word-break:break-all}
-.mono{font-family:var(--f-mono);font-size:12.5px}
-.pub-row{display:grid;grid-template-columns:3fr 3fr 1fr;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-@media (max-width:640px){.pub-row{grid-template-columns:1fr}}
-.prev-box{height:500px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.prev-box iframe{width:100%;height:100%;border:0;background:#fff}
-.spinner{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 70%,transparent);display:grid;place-items:center;z-index:9;font-size:17px}
-.spinner div{background:var(--bg);border:1px solid var(--line);padding:18px 24px;border-radius:10px;box-shadow:0 6px 30px rgba(0,0,0,.12)}
+body{background:var(--canvas);color:var(--ink);font:15px/1.6 var(--f-body);
+  background-image:radial-gradient(1100px 500px at 85% -10%,rgba(255,107,53,.13),transparent 60%),radial-gradient(900px 600px at -10% 10%,rgba(80,120,255,.12),transparent 60%);background-attachment:fixed}
+a{color:var(--signal)}
+code,.mono{font-family:var(--f-mono);font-size:12.5px}
+code{background:var(--panel-2);border:1px solid var(--line);padding:1px 6px;border-radius:6px}
 [hidden]{display:none!important}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);gap:28px;max-width:1360px;margin:0 auto;padding:28px 24px 80px}
+@media (max-width:980px){.shell{grid-template-columns:1fr}.rail{position:static!important}}
+
+/* ---- rail ---- */
+.rail{position:sticky;top:24px;align-self:start;display:grid;gap:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--signal),#ffb347);color:var(--signal-ink);font:700 18px var(--f-disp)}
+.brand b{font:700 15px/1.15 var(--f-disp);letter-spacing:.01em}
+.brand small{display:block;color:var(--muted);font-size:12px;font-weight:500}
+.steps{display:grid;gap:4px;padding:10px;border:1px solid var(--line);border-radius:16px;background:rgba(18,26,48,.7)}
+.steps a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:600;font-size:14px}
+.steps a:hover{background:var(--panel-2)}
+.steps a .n{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font:700 11px var(--f-disp);background:var(--panel-2);border:1px solid var(--line);color:var(--muted);flex-shrink:0}
+.steps a.done .n{background:var(--good);border-color:var(--good);color:#06281a}
+.steps a small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.meters{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.meter{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--panel)}
+.meter b{display:block;font:700 24px/1 var(--f-disp);font-variant-numeric:tabular-nums}
+.meter span{font-size:12px;color:var(--muted)}
+.meter.wide{grid-column:1/-1;display:flex;align-items:center;gap:10px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 4px rgba(255,200,87,.15);flex-shrink:0}
+.dot.on{background:var(--good);box-shadow:0 0 0 4px rgba(61,220,151,.15)}
+
+/* ---- main ---- */
+.main{display:grid;gap:22px;min-width:0}
+.hero{padding:6px 0 4px}
+.hero h1{font:700 clamp(28px,4.2vw,46px)/1.05 var(--f-disp);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--signal),#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);margin:10px 0 0;max-width:64ch;font-size:16px}
+.panel{background:linear-gradient(180deg,var(--panel),rgba(18,26,48,.85));border:1px solid var(--line);border-radius:20px;padding:24px;display:grid;gap:18px;scroll-margin-top:20px}
+.ph{display:flex;align-items:flex-start;gap:14px}
+.ph .n{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font:700 14px var(--f-disp);background:rgba(255,107,53,.14);color:var(--signal);border:1px solid rgba(255,107,53,.35);flex-shrink:0}
+.ph h2{font:700 19px/1.25 var(--f-disp);margin:0;text-wrap:balance}
+.ph p{margin:3px 0 0;color:var(--muted);font-size:14px}
+.ph .right{margin-left:auto}
+h3{font:600 15px var(--f-body);margin:0;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+
+label{display:grid;gap:6px;font-size:13px;font-weight:600;color:#c9d1e6}
+label .hint{font-weight:500;color:var(--muted)}
+input,select{width:100%;font:15px var(--f-body);color:var(--ink);background:var(--canvas);border:1px solid var(--line);border-radius:11px;padding:11px 13px;transition:border-color .15s,box-shadow .15s}
+input::placeholder{color:#5f6b8a}
+input:focus,select:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px rgba(255,107,53,.18)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.f3{display:grid;grid-template-columns:2fr 1.2fr 1.4fr;gap:14px}
+@media (max-width:760px){.f3{grid-template-columns:1fr}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 14px var(--f-body);padding:10px 16px;border-radius:11px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);cursor:pointer;transition:transform .12s,border-color .15s,background .15s;width:fit-content}
+.btn:hover:not(:disabled){border-color:#3a4670;transform:translateY(-1px)}
+.btn.primary{background:var(--signal);border-color:var(--signal);color:var(--signal-ink);font-weight:700}
+.btn.primary:hover:not(:disabled){background:#ff7d4d}
+.btn.big{padding:15px 26px;font-size:16px;border-radius:14px;box-shadow:0 10px 30px -10px rgba(255,107,53,.6)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.ghost{background:transparent}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+.alert{padding:12px 14px;border-radius:12px;font-size:14px;border:1px solid}
+.ok{background:rgba(61,220,151,.09);border-color:rgba(61,220,151,.35);color:#a8f0cf}
+.bad{background:rgba(255,93,115,.09);border-color:rgba(255,93,115,.35);color:#ffc0c9}
+.info{background:rgba(120,150,255,.08);border-color:rgba(120,150,255,.3);color:#c9d4ff}
+
+.seg{display:inline-flex;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--canvas);gap:4px}
+.seg label{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:14px}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:checked){background:var(--panel-2);color:var(--ink);box-shadow:inset 0 0 0 1px #3a4670}
+.seg label:has(input:focus-visible){outline:2px solid var(--signal)}
+
+.count{display:flex;align-items:center;gap:12px}
+.num{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--canvas)}
+.num input{width:64px;border:0;border-radius:0;text-align:center;background:transparent;font:700 16px var(--f-mono);padding:9px 4px}
+.num button{border:0;background:var(--panel-2);color:var(--ink);width:40px;height:42px;font-size:18px;cursor:pointer}
+.num button:hover{background:#222c4b}
+
+.rows{display:grid;gap:12px}
+.biz-row{display:grid;grid-template-columns:34px 2fr 2fr 1.4fr 1.8fr;gap:12px;align-items:end;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(11,16,32,.55);position:relative;overflow:hidden}
+.biz-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--row-accent,#3a4670)}
+.biz-row .idx{font:700 12px var(--f-disp);color:var(--muted);align-self:center;text-align:center}
+@media (max-width:900px){.biz-row{grid-template-columns:1fr 1fr}.biz-row .idx{grid-column:1/-1;text-align:left}}
+@media (max-width:520px){.biz-row{grid-template-columns:1fr}}
+.sel{position:relative}
+.sel .sw{position:absolute;left:12px;bottom:15px;width:14px;height:14px;border-radius:4px;pointer-events:none}
+.sel select{padding-left:34px}
+
+.drop{border:1.5px dashed #3a4670;border-radius:16px;padding:26px;text-align:center;display:grid;gap:8px;place-items:center;background:rgba(11,16,32,.45);cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--signal);background:rgba(255,107,53,.06)}
+.drop b{font:700 15px var(--f-disp)}
+.drop input{display:none}
+
+.toggle{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:600;font-size:14px;color:var(--ink)}
+.toggle input{appearance:none;width:44px;height:24px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;padding:0;border:0}
+.toggle input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.toggle input:checked{background:var(--good)}
+.toggle input:checked::after{left:23px}
+.toggle input:disabled{opacity:.4;cursor:not-allowed}
+
+.prog{height:8px;border-radius:99px;background:var(--canvas);border:1px solid var(--line);overflow:hidden}
+.prog span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--signal),#ffb347);transition:width .25s}
+.ptext{font-size:13px;color:var(--muted);margin:6px 0 0}
+
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;background:rgba(11,16,32,.6)}
+td a{word-break:break-all}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:3px 10px 3px 8px;border-radius:99px;font-size:12.5px;font-weight:600;border:1px solid;white-space:nowrap}
+.chip i{width:9px;height:9px;border-radius:3px}
+.st{font:600 12px var(--f-mono);padding:4px 9px;border-radius:8px;white-space:nowrap}
+.st.g{background:rgba(61,220,151,.12);color:var(--good)} .st.y{background:rgba(255,200,87,.12);color:var(--warn)} .st.r{background:rgba(255,93,115,.12);color:var(--bad)}
+
+/* niche palette */
+.niche-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.niche-tools input{max-width:300px}
+.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:236px;overflow:auto;padding-right:4px}
+.pchip{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:11px;border:1px solid rgba(255,255,255,.07);color:#fff;font:600 12.5px var(--f-body);cursor:pointer;text-align:left;transition:transform .12s,border-color .12s}
+.pchip:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.3)}
+.pchip i{width:16px;height:16px;border-radius:5px;flex-shrink:0}
+
+details.card{border:1px solid var(--line);border-radius:14px;background:rgba(11,16,32,.45);overflow:hidden}
+details.card>summary{cursor:pointer;list-style:none;padding:13px 16px;display:flex;align-items:center;gap:12px;font-weight:600}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"+";margin-left:auto;font:700 18px var(--f-disp);color:var(--muted)}
+details.card[open]>summary::after{content:"–"}
+.card-body{padding:0 16px 16px;display:grid;gap:12px}
+.frame{height:520px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff}
+.frame iframe{width:100%;height:100%;border:0}
+
+.pub-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr) auto;gap:14px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line)}
+.pub-row:last-child{border-bottom:0}
+@media (max-width:700px){.pub-row{grid-template-columns:1fr}}
+.empty{border:1px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted);font-size:14px}
+
+.boot{position:fixed;inset:0;display:grid;place-items:center;background:rgba(11,16,32,.82);backdrop-filter:blur(6px);z-index:20}
+.boot div{display:grid;gap:14px;justify-items:center;text-align:center;padding:28px 34px;border:1px solid var(--line);border-radius:20px;background:var(--panel);max-width:380px}
+.boot .ring{width:42px;height:42px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--signal);animation:spin 0.9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<div id="boot" class="spinner"><div id="boot-text">⏳ Engine load ho raha hai (pehli dafa 10-20 second)…</div></div>
+<div id="boot" class="boot"><div><span class="ring" aria-hidden="true"></span><strong style="font-family:var(--f-disp)">Engine start ho raha hai</strong><span id="boot-text" style="color:var(--muted);font-size:14px">Pehli dafa 10-20 second lagte hain. Is ke baad sab foran hota hai.</span></div></div>
 
-<main class="main">
-  <h1>🏗️ Landing Page Engine</h1>
-  <p class="caption">Everything on one page: connect WordPress, add businesses, then generate — publishing happens in the same click.</p>
+<div class="shell">
+  <!-- ====================== RAIL ====================== -->
+  <aside class="rail" aria-label="Steps">
+    <div class="brand"><span class="logo">LP</span><div><b>Landing Page<br>Engine</b><small id="niche-total">76 niches · US &amp; Canada</small></div></div>
+    <nav class="steps">
+      <a href="#wp-exp" id="nav-wp"><span class="n">0</span><span>WordPress<small id="nav-wp-sub">Connect nahi hai</small></span></a>
+      <a href="#gen-panel" id="nav-gen"><span class="n">1</span><span>Generate Sites<small>Manual ya CSV</small></span></a>
+      <a href="#prev-panel" id="nav-prev"><span class="n">2</span><span>Preview &amp; Download<small>Har page dekhein</small></span></a>
+      <a href="#pub-panel" id="nav-pub"><span class="n">3</span><span>Publish<small>WordPress par live</small></span></a>
+    </nav>
+    <div class="meters">
+      <div class="meter"><b id="m-built">0</b><span>Pages bane</span></div>
+      <div class="meter"><b id="m-live">0</b><span>Live hue</span></div>
+      <div class="meter wide"><span id="m-dot" class="dot"></span><span id="m-wp" style="font-size:13px;color:var(--ink)">WordPress connect nahi</span></div>
+    </div>
+  </aside>
 
-  <!-- ===================== 0. WORDPRESS CONNECTION ===================== -->
-  <details class="exp" id="wp-exp" open>
-    <summary>🔌 WordPress connection</summary>
-    <div class="exp-body">
-      <p class="caption">Uses the WordPress REST API with an Application Password. Nothing is sent anywhere until you click a Generate or Publish button.</p>
-      <form id="wp-form" class="exp-body" style="padding:0" autocomplete="off">
-        <label for="wp-url">WordPress site URL<input id="wp-url" placeholder="https://yourdomain.com" inputmode="url"></label>
-        <label for="wp-user">WordPress username<input id="wp-user"></label>
-        <label for="wp-pass">Application Password <span class="caption">WP Admin → Users → Profile → Application Passwords</span><input id="wp-pass" type="password"></label>
-        <label class="check" for="wp-remember"><input id="wp-remember" type="checkbox" checked> Remember on this browser</label>
-        <button class="btn" type="submit" id="wp-save">Save credentials</button>
+  <!-- ====================== MAIN ====================== -->
+  <main class="main">
+    <header class="hero">
+      <h1>Naam, address, phone. <em>Poora landing page.</em></h1>
+      <p>Har business ke liye SEO-ready page: services, aas paas ke shehar, reviews, FAQ schema aur contact form. Niche ke apne rang mein, aur ek click mein aapki WordPress site par live.</p>
+    </header>
+
+    <!-- ---------- 0. WORDPRESS ---------- -->
+    <section class="panel" id="wp-exp">
+      <div class="ph"><span class="n">0</span><div><h2>🔌 WordPress connection</h2><p>WordPress REST API + Application Password. Ye details sirf aapke browser mein rehti hain.</p></div></div>
+      <form id="wp-form" style="display:grid;gap:14px" autocomplete="off">
+        <div class="f3">
+          <label for="wp-url">WordPress site URL<input id="wp-url" placeholder="https://yourdomain.com" inputmode="url"></label>
+          <label for="wp-user">WordPress username<input id="wp-user" placeholder="admin"></label>
+          <label for="wp-pass">Application Password<input id="wp-pass" type="password" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"></label>
+        </div>
+        <div class="bar">
+          <button class="btn primary" type="submit" id="wp-save">Connect &amp; save</button>
+          <label class="toggle" for="wp-remember"><input id="wp-remember" type="checkbox" checked> Is browser mein yaad rakhein</label>
+          <span class="hint" style="font-size:13px;color:var(--muted)">Password yahan se banta hai: WP Admin → Users → Profile → Application Passwords</span>
+        </div>
       </form>
       <div id="wp-msg" class="alert" hidden></div>
-      <p id="wp-connected" class="caption" hidden></p>
-    </div>
-  </details>
+      <p id="wp-connected" class="mono" style="color:var(--good);margin:0" hidden></p>
+    </section>
 
-  <!-- ===================== 1. GENERATE ===================== -->
-  <h2>1️⃣ Generate Sites</h2>
-  <h3>Add businesses</h3>
-  <div class="alert info" id="niche-info">Loading niches…</div>
+    <!-- ---------- 1. GENERATE ---------- -->
+    <section class="panel" id="gen-panel">
+      <div class="ph"><span class="n">1</span><div><h2>Generate Sites</h2><p>Businesses add karein, ek ek karke ya CSV se poori list.</p></div>
+        <div class="right seg" role="radiogroup" aria-label="Input method">
+          <label for="m-man"><input type="radio" name="method" id="m-man" value="manual" checked>✍️ Manual entry</label>
+          <label for="m-csv"><input type="radio" name="method" id="m-csv" value="csv">📄 Upload CSV</label>
+        </div>
+      </div>
 
-  <div class="radio" role="radiogroup" aria-label="Input method">
-    <span style="font-size:14px;width:100%">Input method</span>
-    <label for="m-csv"><input type="radio" name="method" id="m-csv" value="csv"> Upload CSV</label>
-    <label for="m-man"><input type="radio" name="method" id="m-man" value="manual" checked> Manual entry</label>
-  </div>
+      <section id="man-sec" style="display:grid;gap:14px">
+        <div class="count">
+          <span style="font-weight:600;font-size:14px">How many businesses?</span>
+          <span class="num"><button type="button" id="n-minus" aria-label="Fewer">−</button><input id="n-rows" type="number" min="1" max="50" value="1" aria-label="How many businesses"><button type="button" id="n-plus" aria-label="More">+</button></span>
+        </div>
+        <div class="rows" id="rows"></div>
+      </section>
 
-  <section id="csv-sec" hidden>
-    <p class="caption">CSV columns required: <code>name, address, phone, niche</code> — address format: <code>City, ST</code></p>
-    <label for="csv-file">Upload leads CSV<input id="csv-file" type="file" accept=".csv,text/csv"></label>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="btn" type="button" id="csv-sample">Use sample_leads.csv</button>
-    </div>
-    <div id="csv-err" class="alert bad" hidden style="margin-top:10px"></div>
-    <div class="tbl" id="csv-preview" hidden style="margin-top:10px"></div>
-  </section>
+      <section id="csv-sec" style="display:grid;gap:12px" hidden>
+        <label class="drop" for="csv-file" id="drop">
+          <input id="csv-file" type="file" accept=".csv,text/csv">
+          <span style="font-size:28px" aria-hidden="true">📄</span>
+          <b>CSV file yahan drop karein ya click karein</b>
+          <span style="color:var(--muted);font-weight:500">Columns: <code>name, address, phone, niche</code> · address: <code>City, ST</code></span>
+        </label>
+        <div class="bar"><button class="btn ghost" type="button" id="csv-sample">sample_leads.csv use karein</button></div>
+        <div id="csv-err" class="alert bad" hidden></div>
+        <div class="tbl" id="csv-preview" hidden></div>
+      </section>
 
-  <section id="man-sec">
-    <p class="caption">Add one or more rows, then click Generate below.</p>
-    <label for="n-rows" style="max-width:220px">How many businesses?
-      <span class="num"><button class="btn" type="button" id="n-minus" aria-label="Fewer">−</button><input id="n-rows" type="number" min="1" max="50" value="1"><button class="btn" type="button" id="n-plus" aria-label="More">+</button></span>
-    </label>
-    <div class="rows" id="rows" style="margin-top:12px"></div>
-  </section>
+      <details class="card">
+        <summary>🎨 Niches aur unke rang <span class="mono" id="niche-count" style="color:var(--muted);font-weight:500"></span></summary>
+        <div class="card-body">
+          <div class="niche-tools"><input id="niche-search" type="search" placeholder="Niche dhoondein… roof, pool, paint" aria-label="Search niches"><span style="color:var(--muted);font-size:13px">Click karein to wo niche abhi wali row mein lag jayegi.</span></div>
+          <div class="palette" id="niche-info"></div>
+        </div>
+      </details>
 
-  <hr>
-  <label class="check" for="also-pub"><input id="also-pub" type="checkbox" disabled> Also publish to WordPress right after generating (one click, no separate step)</label>
-  <p class="caption" id="also-pub-hint">Connect WordPress above to enable one-click publishing.</p>
-  <button class="btn primary" type="button" id="btn-gen" disabled>🚀 Generate Sites</button>
-  <div id="gen-progress" hidden>
-    <div class="progress"><span id="gen-bar"></span></div>
-    <p class="ptext" id="gen-text"></p>
-  </div>
-  <div id="gen-msg" class="alert" hidden></div>
+      <div style="display:grid;gap:14px;padding-top:6px;border-top:1px solid var(--line)">
+        <label class="toggle" for="also-pub"><input id="also-pub" type="checkbox" disabled> Also publish to WordPress right after generating</label>
+        <p id="also-pub-hint" style="margin:-6px 0 0;color:var(--muted);font-size:13px">One-click publishing ke liye upar WordPress connect karein.</p>
+        <button class="btn primary big" type="button" id="btn-gen" disabled>🚀 Generate Sites</button>
+        <div id="gen-progress" hidden><div class="prog"><span id="gen-bar"></span></div><p class="ptext" id="gen-text"></p></div>
+        <div id="gen-msg" class="alert" hidden></div>
+      </div>
 
-  <section id="results-sec" hidden>
-    <h3>Results</h3>
-    <div class="tbl" style="margin-top:10px"><table><thead><tr><th>name</th><th>phone</th><th>niche</th><th>slug</th><th>status</th><th>wp_status</th></tr></thead><tbody id="res-body"></tbody></table></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-      <button class="btn" type="button" id="dl-results">⬇️ Download results.csv</button>
-      <button class="btn" type="button" id="dl-zip">⬇️ Download all sites (.zip)</button>
-    </div>
-  </section>
+      <section id="results-sec" style="display:grid;gap:12px" hidden>
+        <h3>Results</h3>
+        <div class="tbl"><table><thead><tr><th>Business</th><th>Niche</th><th>Slug</th><th>Status</th><th>WordPress</th></tr></thead><tbody id="res-body"></tbody></table></div>
+        <div class="bar">
+          <button class="btn" type="button" id="dl-results">⬇️ results.csv</button>
+          <button class="btn" type="button" id="dl-zip">⬇️ Sab sites (.zip)</button>
+        </div>
+      </section>
+    </section>
 
-  <hr>
-  <!-- ===================== 2. PREVIEW & DOWNLOAD ===================== -->
-  <h2>2️⃣ Preview &amp; Download</h2>
-  <h3>Preview &amp; download individual sites</h3>
-  <div class="alert info" id="prev-empty">Generate some sites in step 1 above first.</div>
-  <div id="prev-list" class="rows"></div>
+    <!-- ---------- 2. PREVIEW ---------- -->
+    <section class="panel" id="prev-panel">
+      <div class="ph"><span class="n">2</span><div><h2>Preview &amp; Download</h2><p>Har bana hua page yahan khol kar dekhein aur <code>index.html</code> download karein.</p></div></div>
+      <div class="empty" id="prev-empty">Generate some sites in step 1 above first.</div>
+      <div id="prev-list" class="rows"></div>
+    </section>
 
-  <hr>
-  <!-- ===================== 3. PUBLISH ===================== -->
-  <h2>3️⃣ Publish to WordPress</h2>
-  <h3>Publish (manual / bulk)</h3>
-  <p class="caption">Use this if you generated sites without publishing them, or want to re-publish. WordPress credentials are set in the panel above.</p>
-  <div class="alert info" id="pub-empty">Generate sites in step 1 above first.</div>
-  <section id="pub-sec" hidden>
-    <p><strong id="pub-count"></strong></p>
-    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-      <button class="btn primary" type="button" id="pub-all" disabled>🚀 Publish ALL</button>
-      <span class="caption" id="pub-all-hint"></span>
-    </div>
-    <div id="pub-progress" hidden style="margin-top:10px">
-      <div class="progress"><span id="pub-bar"></span></div>
-      <p class="ptext" id="pub-text"></p>
-    </div>
-    <div id="pub-list" style="margin-top:10px"></div>
-  </section>
-
-  <section id="live-sec" hidden>
-    <hr>
-    <h3>Live URLs</h3>
-    <div class="tbl" style="margin-top:10px"><table><thead><tr><th>name</th><th>niche</th><th>wp_status</th></tr></thead><tbody id="live-body"></tbody></table></div>
-  </section>
-</main>
-
+    <!-- ---------- 3. PUBLISH ---------- -->
+    <section class="panel" id="pub-panel">
+      <div class="ph"><span class="n">3</span><div><h2>Publish to WordPress</h2><p>Jo pages bina publish ke bane, ya dobara publish karne hon. Har page ko alag unique URL milta hai.</p></div></div>
+      <div class="empty" id="pub-empty">Generate sites in step 1 above first.</div>
+      <section id="pub-sec" style="display:grid;gap:14px" hidden>
+        <div class="bar"><button class="btn primary" type="button" id="pub-all" disabled>🚀 Publish ALL</button><strong id="pub-count"></strong><span id="pub-all-hint" style="color:var(--muted);font-size:13px"></span></div>
+        <div id="pub-progress" hidden><div class="prog"><span id="pub-bar"></span></div><p class="ptext" id="pub-text"></p></div>
+        <div id="pub-list"></div>
+      </section>
+      <section id="live-sec" style="display:grid;gap:12px" hidden>
+        <h3>Live URLs</h3>
+        <div class="tbl"><table><thead><tr><th>Business</th><th>Niche</th><th>Live URL</th></tr></thead><tbody id="live-body"></tbody></table></div>
+      </section>
+    </section>
+  </main>
+</div>
 <script type="module">
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -218,15 +321,39 @@ async function boot() {
     api = py.globals;
     api.get("set_photo_folders")(JSON.stringify(manifest));
     NICHES = JSON.parse(api.get("niches_json")());
-    $("#niche-info").innerHTML = `<strong>${NICHES.length} niches ready:</strong> ` + NICHES.map(n => n.key).join(", ");
+    renderPalette();
     renderRows();
     $("#boot").hidden = true;
     updateGenButton();
   } catch (e) {
     console.error(e);
-    $("#boot-text").textContent = "❌ Engine load nahi hua: " + (e.message || e) + " — page reload karein.";
+    $("#boot-text").textContent = "Engine load nahi hua: " + (e.message || e) + ". Page reload karein.";
   }
 }
+
+// ---------- niche palette ----------
+let lastSelect = null;
+const nicheBy = (k) => NICHES.find(n => n.key === k);
+function chip(key) {
+  const n = nicheBy(key);
+  if (!n) return `<span class="chip" style="border-color:var(--line);color:var(--muted)">${esc(key)}</span>`;
+  return `<span class="chip" style="background:${n.bg};border-color:${n.accent}66;color:${n.accent2}"><i style="background:${n.accent}"></i>${esc(n.label)}</span>`;
+}
+function renderPalette() {
+  $("#niche-count").textContent = `(${NICHES.length})`;
+  $("#niche-total").textContent = `${NICHES.length} niches · US & Canada`;
+  const box = $("#niche-info");
+  box.innerHTML = NICHES.map(n => `<button type="button" class="pchip" data-key="${n.key}" title="${esc(n.keyword)}" style="background:${n.bg}"><i style="background:linear-gradient(135deg,${n.accent},${n.accent2})"></i>${esc(n.label)}</button>`).join("");
+  box.querySelectorAll(".pchip").forEach(b => b.addEventListener("click", () => {
+    const sel = lastSelect && document.body.contains(lastSelect) ? lastSelect : document.querySelector(".biz-row .nc");
+    if (method() !== "manual") { document.querySelector("#m-man").click(); }
+    if (sel) { sel.value = b.dataset.key; sel.dispatchEvent(new Event("change")); sel.focus(); }
+  }));
+}
+$("#niche-search").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll(".pchip").forEach(c => c.hidden = !(c.textContent + c.dataset.key).toLowerCase().includes(q));
+});
 
 // ---------- manual rows ----------
 const rowState = [];
@@ -238,13 +365,14 @@ function renderRows() {
   box.querySelectorAll(".biz-row").forEach((r, i) => {
     rowState[i] = { nm: r.querySelector(".nm").value, ad: r.querySelector(".ad").value, ph: r.querySelector(".ph").value, nc: r.querySelector(".nc").value };
   });
-  const opts = NICHES.map(x => `<option value="${x.key}">${x.key}</option>`).join("");
+  const opts = NICHES.map(x => `<option value="${x.key}">${x.label}</option>`).join("");
   box.innerHTML = Array.from({ length: n }, (_, i) => `
     <div class="biz-row">
-      <label for="nm${i}">Name #${i + 1}<input id="nm${i}" class="nm"></label>
-      <label for="ad${i}">Address (City, ST) #${i + 1}<input id="ad${i}" class="ad"></label>
-      <label for="ph${i}">Phone #${i + 1}<input id="ph${i}" class="ph"></label>
-      <label for="nc${i}">Niche #${i + 1}<select id="nc${i}" class="nc">${opts}</select></label>
+      <span class="idx">#${i + 1}</span>
+      <label for="nm${i}">Business name<input id="nm${i}" class="nm" placeholder="R&R Roofing"></label>
+      <label for="ad${i}"><span>Address <span class="hint">(City, ST)</span></span><input id="ad${i}" class="ad" placeholder="Fresno, CA"></label>
+      <label for="ph${i}">Phone<input id="ph${i}" class="ph" placeholder="(559) 555-0123"></label>
+      <label for="nc${i}">Niche<span class="sel"><span class="sw"></span><select id="nc${i}" class="nc">${opts}</select></span></label>
     </div>`).join("");
   box.querySelectorAll(".biz-row").forEach((r, i) => {
     const s = rowState[i];
@@ -252,6 +380,11 @@ function renderRows() {
     else r.querySelector(".nc").value = NICHES[0]?.key || "";
   });
   box.querySelectorAll("input").forEach(i => i.addEventListener("input", updateGenButton));
+  box.querySelectorAll(".biz-row").forEach(r => {
+    const sel = r.querySelector(".nc");
+    const paint = () => { const n = nicheBy(sel.value); r.querySelector(".sw").style.background = n ? `linear-gradient(135deg,${n.accent},${n.accent2})` : ""; r.style.setProperty("--row-accent", n ? n.accent : "#3a4670"); };
+    sel.addEventListener("change", paint); sel.addEventListener("focus", () => lastSelect = sel); paint();
+  });
   updateGenButton();
 }
 $("#n-rows").addEventListener("change", renderRows);
@@ -278,13 +411,17 @@ function loadCsv(text) {
   if (out.error) { $("#csv-err").textContent = out.error; $("#csv-err").hidden = false; }
   else {
     csvRows = out.rows;
-    $("#csv-preview").innerHTML = `<table><thead><tr><th></th><th>name</th><th>address</th><th>phone</th><th>niche</th></tr></thead><tbody>` +
-      csvRows.map((r, i) => `<tr><td class="mono">${i}</td><td>${esc(r.name)}</td><td>${esc(r.address)}</td><td>${esc(r.phone)}</td><td>${esc(r.niche)}</td></tr>`).join("") + `</tbody></table>`;
+    $("#csv-preview").innerHTML = `<table><thead><tr><th>#</th><th>Name</th><th>Address</th><th>Phone</th><th>Niche</th></tr></thead><tbody>` +
+      csvRows.map((r, i) => `<tr><td class="mono">${i + 1}</td><td>${esc(r.name)}</td><td>${esc(r.address)}</td><td class="mono">${esc(r.phone)}</td><td>${chip(r.niche.toLowerCase().trim().replace(/[ -]/g, "_"))}</td></tr>`).join("") + `</tbody></table>`;
     $("#csv-preview").hidden = false;
   }
   updateGenButton();
 }
 $("#csv-file").addEventListener("change", async (e) => { const f = e.target.files[0]; if (f && api) loadCsv(await f.text()); });
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", async e => { const f = e.dataTransfer.files[0]; if (f && api) loadCsv(await f.text()); });
 $("#csv-sample").addEventListener("click", () => api && loadCsv(api.get("sample_csv")()));
 
 // ---------- generate (+ publish in the same click) ----------
@@ -346,7 +483,12 @@ $("#btn-gen").addEventListener("click", async () => {
 function renderAll() {
   const built = sites.filter(s => s.status.startsWith("✅"));
   $("#results-sec").hidden = sites.length === 0;
-  $("#res-body").innerHTML = sites.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td>${esc(s.niche)}</td><td class="mono">${esc(s.slug)}</td><td>${esc(s.status)}</td><td>${linkify(s.wp_status)}</td></tr>`).join("");
+  $("#res-body").innerHTML = sites.map(s => `<tr><td><strong>${esc(s.name)}</strong><br><span class="mono" style="color:var(--muted)">${esc(s.phone)}</span></td><td>${chip(s.niche)}</td><td class="mono">${esc(s.slug) || "—"}</td><td>${statusPill(s.status)}</td><td>${s.wp_status ? linkify(s.wp_status) : '<span style="color:var(--muted)">—</span>'}</td></tr>`).join("");
+  const liveN = sites.filter(s => s.wp_status.startsWith("✅")).length;
+  $("#m-built").textContent = built.length; $("#m-live").textContent = liveN;
+  $("#nav-gen").classList.toggle("done", built.length > 0);
+  $("#nav-prev").classList.toggle("done", built.length > 0);
+  $("#nav-pub").classList.toggle("done", liveN > 0);
 
   $("#prev-empty").hidden = sites.length > 0;
   $("#prev-empty").textContent = sites.length && !built.length ? "No successfully built sites yet." : "Generate some sites in step 1 above first.";
@@ -354,11 +496,11 @@ function renderAll() {
   const prev = $("#prev-list");
   const openSlugs = new Set([...prev.querySelectorAll("details[open]")].map(d => d.dataset.slug));
   prev.innerHTML = built.map((s, i) => `
-    <details class="exp" data-slug="${esc(s.slug)}" ${openSlugs.has(s.slug) ? "open" : ""}>
-      <summary>📄 ${esc(s.name)} — ${esc(s.niche)}</summary>
-      <div class="exp-body">
-        <button class="btn" type="button" data-dl="${esc(s.slug)}">⬇️ Download index.html</button>
-        <div class="prev-box"><iframe title="Preview of ${esc(s.name)}" data-frame="${esc(s.slug)}"></iframe></div>
+    <details class="card" data-slug="${esc(s.slug)}" ${openSlugs.has(s.slug) ? "open" : ""}>
+      <summary>📄 ${esc(s.name)} ${chip(s.niche)}</summary>
+      <div class="card-body">
+        <div class="bar"><button class="btn" type="button" data-dl="${esc(s.slug)}">⬇️ Download index.html</button>${s.wp_status.startsWith("✅") ? linkify(s.wp_status) : ""}</div>
+        <div class="frame"><iframe title="Preview of ${esc(s.name)}" data-frame="${esc(s.slug)}"></iframe></div>
       </div>
     </details>`).join("");
   prev.querySelectorAll("details").forEach(d => {
@@ -373,8 +515,8 @@ function renderAll() {
   $("#pub-all").disabled = !wp.ok || !built.length;
   $("#pub-all-hint").textContent = wp.ok ? "Creates a new page with a unique URL for every site." : "Save WordPress credentials above to enable publishing.";
   $("#pub-list").innerHTML = built.map((s, i) => `
-    <div class="pub-row"><div><strong>${esc(s.name)}</strong> — ${esc(s.niche)}</div><div>${s.wp_status ? linkify(s.wp_status) : "Not published"}</div>
-    <div><button class="btn" type="button" data-pub="${esc(s.slug)}" ${wp.ok ? "" : "disabled"}>Publish</button></div></div>`).join("");
+    <div class="pub-row"><div><strong>${esc(s.name)}</strong><br>${chip(s.niche)}</div><div>${s.wp_status ? linkify(s.wp_status) : '<span style="color:var(--muted)">Not published</span>'}</div>
+    <div><button class="btn ${s.wp_status.startsWith("✅") ? "" : "primary"}" type="button" data-pub="${esc(s.slug)}" ${wp.ok ? "" : "disabled"}>${s.wp_status.startsWith("✅") ? "Re-publish" : "Publish"}</button></div></div>`).join("");
   $("#pub-list").querySelectorAll("[data-pub]").forEach(b => b.addEventListener("click", async () => {
     const s = sites.find(x => x.slug === b.dataset.pub); b.disabled = true; b.textContent = "Publishing…";
     await publishOne(s); renderAll();
@@ -382,7 +524,11 @@ function renderAll() {
 
   const live = sites.filter(s => s.wp_status.startsWith("✅"));
   $("#live-sec").hidden = live.length === 0;
-  $("#live-body").innerHTML = live.map(s => `<tr><td>${esc(s.name)}</td><td>${esc(s.niche)}</td><td>${linkify(s.wp_status)}</td></tr>`).join("");
+  $("#live-body").innerHTML = live.map(s => `<tr><td><strong>${esc(s.name)}</strong></td><td>${chip(s.niche)}</td><td>${linkify(s.wp_status.replace(/^✅ Live: /, ""))}</td></tr>`).join("");
+}
+function statusPill(t) {
+  const c = t.startsWith("✅") ? "g" : t.startsWith("SKIPPED") ? "y" : "r";
+  return `<span class="st ${c}">${esc(t)}</span>`;
 }
 function linkify(t) {
   const e = esc(t);
@@ -432,18 +578,21 @@ async function wpConnect(silent) {
     try { res = await wpFetch("wp/v2/users/me", {}, { context: "edit" }); err = null; } catch (e) { err = e; res = null; }
     if (res && (res.r.ok || res.r.status === 401 || res.r.status === 403)) break;
   }
-  $("#wp-save").disabled = false; $("#wp-save").textContent = "Save credentials";
+  $("#wp-save").disabled = false; $("#wp-save").textContent = "Connect & save";
   if (res && res.r.ok) {
     wp.ok = true;
     wpMsg(`Saved for this session${$("#wp-remember").checked ? " and remembered on this browser" : ""}. Logged in as ${(res.body && res.body.name) || user}.`, "ok");
     $("#wp-connected").hidden = false; $("#wp-connected").textContent = `Connected to: ${wp.base}`;
     try { if ($("#wp-remember").checked) localStorage.setItem(LS, JSON.stringify({ url, user, pass })); else localStorage.removeItem(LS); } catch (e) {}
     $("#also-pub").disabled = false; $("#also-pub").checked = true; $("#also-pub-hint").hidden = true;
-    if (silent) $("#wp-exp").open = false;
+    const host = wp.base.replace(/^https?:\/\//, "");
+    $("#m-dot").classList.add("on"); $("#m-wp").textContent = "Connected · " + host;
+    $("#nav-wp-sub").textContent = host; $("#nav-wp").classList.add("done");
   } else {
     wp.ok = false;
     wpMsg("❌ " + explain(err, res && res.r, res && res.body), "bad");
     $("#wp-connected").hidden = true; $("#also-pub").disabled = true; $("#also-pub").checked = false; $("#also-pub-hint").hidden = false;
+    $("#m-dot").classList.remove("on"); $("#m-wp").textContent = "WordPress connect nahi"; $("#nav-wp-sub").textContent = "Connect nahi hai"; $("#nav-wp").classList.remove("done");
   }
   updateGenButton(); renderAll();
 }
