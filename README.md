@@ -4,7 +4,15 @@ Give it a business **name, address (City, ST) and phone number** plus a **niche*
 
 **76 niches** are included, and every niche has its own colour palette: accent colours *and* a tinted page background (lawn care on deep green, plumbing on deep navy, towing on deep red, and so on).
 
-## Run the app (single + bulk)
+## Live web app (no install)
+
+**https://attiqbaig1.github.io/landing-page-engine/**
+
+The whole engine runs inside the browser (Python via Pyodide): single business, bulk CSV, preview, download (single `.html` or ZIP) and **one-click publishing to WordPress** with an Application Password. WordPress credentials stay in your own browser.
+
+Every push to `main` rebuilds and redeploys it (`.github/workflows/pages.yml`, source in `web/`). Demo pages for every niche: `/demos/`.
+
+## Run the Streamlit app locally (optional)
 
 ```bash
 pip install -r requirements.txt
@@ -22,10 +30,6 @@ streamlit run app.py
 cd engine
 python run_batch.py sample_leads.csv --out-dir output --results results.csv
 ```
-
-## Demo gallery (GitHub Pages)
-
-`.github/workflows/pages.yml` (Actions tab → *Run workflow*) builds one sample page per niche with `engine/build_demo.py` and publishes the gallery to GitHub Pages. Pages on a private repo needs a paid GitHub plan; otherwise build it locally with `python build_demo.py --out ../site` and open `site/index.html`.
 
 ## Adding a niche
 
