@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+engine/output/
+engine/results.csv
+results.csv
+site/
+.streamlit/secrets.toml
