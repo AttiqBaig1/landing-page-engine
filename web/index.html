@@ -462,6 +462,7 @@ $("#btn-gen").addEventListener("click", async () => {
       if (publish && r.status === "BUILT") {
         setP(i / rows.length, `Publishing ${r.name}...`); await tick();
         await publishOne(site);
+        if (i < rows.length - 1) await sleep(PUBLISH_GAP_MS);
       }
       renderAll();
     }
@@ -552,10 +553,22 @@ function endpoint(path, query) {
   const q = query ? new URLSearchParams(query).toString() : "";
   return wp.mode === "pretty" ? `${wp.base}/wp-json/${path}${q ? "?" + q : ""}` : `${wp.base}/?rest_route=/${path}${q ? "&" + q : ""}`;
 }
+// Shared hosting often answers 502/503/504/429 ("PHP worker exited") when many pages
+// are published back to back. Those are temporary: wait and retry (3 tries).
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const PUBLISH_GAP_MS = 1500;   // pause between pages in bulk publishing
 async function wpFetch(path, opts = {}, query) {
-  const r = await fetch(endpoint(path, query), { ...opts, headers: { Authorization: wp.auth, "Content-Type": "application/json", ...(opts.headers || {}) } });
-  let body = null; try { body = await r.json(); } catch (e) {}
-  return { r, body };
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await sleep(3000 * attempt);
+    try {
+      const r = await fetch(endpoint(path, query), { ...opts, headers: { Authorization: wp.auth, "Content-Type": "application/json", ...(opts.headers || {}) } });
+      if ([429, 502, 503, 504].includes(r.status) && attempt < 2) continue;
+      let body = null; try { body = await r.json(); } catch (e) {}
+      return { r, body };
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error("network error");
 }
 function explain(err, r, body) {
   if (err) return /claude\.ai|claudeusercontent/.test(location.hostname)
@@ -563,6 +576,7 @@ function explain(err, r, body) {
     : "Site tak pahunch nahi saka — URL check karein (https:// ke saath), ya hosting/security plugin REST API ko rok raha hai.";
   if (r.status === 401 || r.status === 403) return `HTTP ${r.status}: username ya Application Password galat hai (normal login password yahan nahi chalta).`;
   if (r.status === 404) return "HTTP 404: is site par WordPress REST API nahi mila — URL check karein.";
+  if ([429, 502, 503, 504].includes(r.status)) return `HTTP ${r.status}: WordPress server abhi busy/band hai (hosting ki had). Ek minute baad step 3 se dobara publish karein.`;
   return `HTTP ${r.status}: ${(body && body.message) || "WordPress error"}`;
 }
 function wpMsg(t, cls) { const m = $("#wp-msg"); m.hidden = !t; m.className = "alert " + (cls || "ok"); m.textContent = t; }
@@ -624,6 +638,7 @@ $("#pub-all").addEventListener("click", async () => {
     $("#pub-text").textContent = `Published ${i}/${built.length} — ${built[i].name.slice(0, 30)}`;
     await publishOne(built[i]); if (built[i].wp_status.startsWith("✅")) ok++;
     renderAll();
+    if (i < built.length - 1) await sleep(PUBLISH_GAP_MS);
   }
   $("#pub-bar").style.width = "100%"; $("#pub-text").textContent = `Done: ${ok}/${built.length} published`;
   renderAll();
