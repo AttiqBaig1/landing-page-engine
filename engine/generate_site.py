@@ -350,6 +350,231 @@ def html_attr(s: str) -> str:
             .replace(">", "&gt;").replace('"', "&quot;"))
 
 
+# ---------------------------------------------------------------------------
+# SERVICE AREAS section: headline + coverage stats on the left, a radar map
+# that plots every nearby city at its real bearing and distance on the right,
+# then city cards with distance and drive time, then a "don't see your town"
+# call-to-action strip. Colours come from the niche palette via CSS variables
+# set on the section, so it works the same standalone and inside WordPress.
+# ---------------------------------------------------------------------------
+SERVICE_AREA_CSS = """
+        .sa { position: relative; overflow: hidden; padding: 6.5rem 0; border-top: 1px solid rgba(38,38,38,0.5); }
+        .sa::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(700px 420px at 78% 38%, color-mix(in srgb, var(--sa-acc) 16%, transparent), transparent 70%),
+                        radial-gradient(520px 360px at 8% 90%, color-mix(in srgb, var(--sa-acc2) 9%, transparent), transparent 70%); }
+        .sa > div { position: relative; }
+        .sa-top { display: grid; gap: 3rem; align-items: center; }
+        @media (min-width: 1024px) { .sa-top { grid-template-columns: 1fr 1.05fr; gap: 4rem; } }
+        .sa-title { font-size: clamp(2rem, 4.2vw, 3.25rem); line-height: 1.05; font-weight: 800; letter-spacing: -0.03em; color: #fff; margin: 1rem 0 1.25rem; text-wrap: balance; }
+        .sa-title .sa-hl { background: linear-gradient(90deg, var(--sa-acc2), var(--sa-acc)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .sa-lead { color: #a8a29e; font-size: 1.05rem; line-height: 1.7; max-width: 34rem; margin: 0; }
+        .sa-lead strong { color: #fff; font-weight: 600; }
+        .sa-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 2rem 0; max-width: 34rem; }
+        .sa-stat { border: 1px solid rgba(38,38,38,0.5); background: rgba(23,23,23,0.2); border-radius: 1rem; padding: 1rem .9rem; }
+        .sa-stat b { display: block; font-size: 1.9rem; line-height: 1; font-weight: 800; color: var(--sa-acc2); font-variant-numeric: tabular-nums; }
+        .sa-stat span { display: block; margin-top: .45rem; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: #78716c; font-weight: 600; }
+        @media (max-width: 480px) { .sa-stat { padding: .85rem .7rem; } .sa-stat b { font-size: 1.5rem; } .sa-stat span { font-size: .58rem; letter-spacing: .06em; } }
+        .sa-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+        .sa-btn { display: inline-flex; align-items: center; gap: .6rem; padding: .95rem 1.4rem; border-radius: .75rem; font-weight: 700; font-size: .9rem; color: #fff; text-decoration: none; transition: transform .2s, box-shadow .2s, background .2s; }
+        .sa-btn-main { background: var(--sa-acc); box-shadow: 0 14px 34px -14px var(--sa-acc); }
+        .sa-btn-main:hover { transform: translateY(-2px); box-shadow: 0 18px 40px -12px var(--sa-acc); }
+        .sa-btn-ghost { border: 1px solid #404040; background: rgba(255,255,255,.04); }
+        .sa-btn-ghost:hover { border-color: var(--sa-acc2); }
+
+        .sa-radar { position: relative; aspect-ratio: 1 / 1; width: 100%; max-width: 560px; margin: 0 auto; border-radius: 50%;
+            background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--sa-acc) 12%, transparent) 0%, rgba(10,10,10,0.0) 70%);
+            box-shadow: inset 0 0 0 1px rgba(38,38,38,0.5), 0 30px 80px -40px var(--sa-acc); }
+        .sa-radar svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+        .sa-sweep { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+            background: conic-gradient(from 0deg, transparent 0deg, color-mix(in srgb, var(--sa-acc2) 26%, transparent) 40deg, transparent 75deg);
+            animation: saSpin 7s linear infinite; mask: radial-gradient(circle, #000 0 69.5%, transparent 70%); -webkit-mask: radial-gradient(circle, #000 0 69.5%, transparent 70%); }
+        @keyframes saSpin { to { transform: rotate(360deg); } }
+        .sa-dot { animation: saPop .6s ease-out both; transform-box: fill-box; transform-origin: center; }
+        @keyframes saPop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+        .sa-pulse { animation: saPulse 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+        @keyframes saPulse { 0% { opacity: .65; transform: scale(.6); } 100% { opacity: 0; transform: scale(2.6); } }
+        .sa-label { font: 600 11px Inter, system-ui, sans-serif; fill: #e7e5e4; paint-order: stroke; stroke: rgba(10,10,10,0.85); stroke-width: 3px; }
+        .sa-ring-label { font: 500 9px Inter, system-ui, sans-serif; fill: #78716c; letter-spacing: .08em; }
+
+        .sa-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; margin-top: 3.5rem; }
+        @media (min-width: 640px) { .sa-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (min-width: 1024px) { .sa-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+        .sa-card { position: relative; display: flex; flex-direction: column; gap: .35rem; padding: 1.1rem 1.1rem 1rem; border-radius: 1rem; text-decoration: none;
+            border: 1px solid rgba(38,38,38,0.5); background: rgba(23,23,23,0.2); transition: transform .25s, border-color .25s, background .25s; overflow: hidden; }
+        .sa-card::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(var(--sa-acc2), var(--sa-acc)); opacity: .35; transition: opacity .25s; }
+        .sa-card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--sa-acc2) 55%, transparent); background: color-mix(in srgb, var(--sa-acc) 9%, transparent); }
+        .sa-card:hover::after { opacity: 1; }
+        .sa-card-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+        .sa-chip { font-size: .66rem; font-weight: 700; letter-spacing: .06em; padding: .2rem .5rem; border-radius: 999px; color: var(--sa-acc2); background: color-mix(in srgb, var(--sa-acc) 16%, transparent); white-space: nowrap; }
+        .sa-card-name { font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.25; }
+        .sa-card-meta { font-size: .74rem; color: #78716c; display: flex; align-items: center; gap: .35rem; }
+        .sa-card-go { position: absolute; right: .9rem; bottom: .9rem; opacity: 0; transform: translateX(-4px); transition: opacity .25s, transform .25s; }
+        .sa-card:hover .sa-card-go { opacity: 1; transform: none; }
+        .sa-card.sa-hq { border-color: color-mix(in srgb, var(--sa-acc2) 60%, transparent); background: linear-gradient(150deg, color-mix(in srgb, var(--sa-acc) 22%, transparent), rgba(23,23,23,0.2)); }
+        .sa-card.sa-hq::after { opacity: 1; }
+
+        .sa-foot { margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.15rem 1.35rem;
+            border-radius: 1rem; border: 1px dashed color-mix(in srgb, var(--sa-acc2) 45%, transparent); background: color-mix(in srgb, var(--sa-acc) 7%, transparent); }
+        .sa-foot p { margin: 0; color: #d6d3d1; font-size: .95rem; }
+        .sa-foot p b { color: #fff; }
+        @media (prefers-reduced-motion: reduce) { .sa-sweep, .sa-pulse, .sa-dot { animation: none !important; } }
+"""
+
+
+def _sa_drive_minutes(miles):
+    return max(5, round(miles * 1.35 + 4))
+
+
+def build_service_areas(name, city, state, region, kw, phone, tel, areas, P, ACC, ACC2, ACCD, _icon):
+    from cities import find_city
+    import math as _m
+
+    src = find_city(city, state)
+    pts = [a for a in areas if "lat" in a]
+    max_mi = max([a["miles"] for a in pts] + [5])
+    ring_mi = max(5, int(_m.ceil(max_mi * 1.12 / 5.0) * 5))     # outer ring, rounded up to 5 mi
+    counties = {a.get("county") for a in areas if a.get("county")}
+    n_comm = len(areas) + 1
+
+    # --- radar map (SVG, 400x400, centre 200,200, outer ring r=170) -----------
+    C, R = 200, 170
+    rings = ""
+    for k, frac in enumerate((0.25, 0.5, 0.75, 1.0)):
+        rr = R * frac
+        dash = ' stroke-dasharray="3 5"' if frac < 1 else ""
+        rings += (f'<circle cx="{C}" cy="{C}" r="{rr:.1f}" fill="none" stroke="#262626" '
+                  f'stroke-width="1"{dash}/>')
+        if frac > 0.25:   # the innermost ring is too close to the HQ label
+            rings += (f'<text x="{C + rr * 0.7071 + 4:.1f}" y="{C + rr * 0.7071 + 10:.1f}" '
+                      f'class="sa-ring-label">{round(ring_mi * frac)} MI</text>')
+    axes = (f'<line x1="{C - R}" y1="{C}" x2="{C + R}" y2="{C}" stroke="#262626" stroke-width="1"/>'
+            f'<line x1="{C}" y1="{C - R}" x2="{C}" y2="{C + R}" stroke="#262626" stroke-width="1"/>'
+            f'<text x="{C}" y="{C - R - 8}" text-anchor="middle" class="sa-ring-label" style="fill:{ACC2}">N</text>')
+
+    placed = []
+    if src:
+        cos0 = _m.cos(_m.radians(src["lat"]))
+        for a in pts:
+            dx = (a["lon"] - src["lon"]) * 69.0 * cos0
+            dy = (a["lat"] - src["lat"]) * 69.0
+            d = _m.hypot(dx, dy) or 1
+            x = C + dx / d * (min(a["miles"], ring_mi) / ring_mi * R)
+            y = C - dy / d * (min(a["miles"], ring_mi) / ring_mi * R)
+            placed.append({"x": x, "y": y, "a": a})
+    # simple label de-collision: labels sit to the outside of the dot,
+    # then nudge vertically when two on the same side overlap
+    def _box(p):
+        w = 6.4 * len(p["a"]["city"]) + 4
+        x0 = p["x"] + 9 if p["right"] else p["x"] - 9 - w
+        return (x0, p["ly"] - 10, x0 + w, p["ly"] + 3)
+
+    def _hits(b1, b2):
+        return not (b1[2] < b2[0] or b2[2] < b1[0] or b1[3] < b2[1] or b2[3] < b1[1])
+
+    for p in placed:
+        p["right"] = p["x"] >= C
+        p["ly"] = p["y"] + 4
+    # place labels one by one (closest to HQ first): try outside side, then the
+    # other side, then small vertical nudges — so a label never drifts away
+    # from its own dot.
+    hq_w = 3.6 * max(len(city), 12) + 6
+    done = [(C - hq_w, C + 16, C + hq_w, C + 48), (C - 15, C - 15, C + 15, C + 15)]
+    done += [(p["x"] - 5, p["y"] - 5, p["x"] + 5, p["y"] + 5) for p in placed]
+    for frac in (0.5, 0.75, 1.0):   # ring distance labels
+        rx = C + R * frac * 0.7071 + 4
+        done.append((rx, C + R * frac * 0.7071 + 1, rx + 34, C + R * frac * 0.7071 + 12))
+    for p in sorted(placed, key=lambda q: q["a"]["miles"]):
+        best = None
+        for right in (p["right"], not p["right"]):
+            for dy in (0, -8, 8, -15, 15, -22, 22):
+                p["right"], p["ly"] = right, p["y"] + 4 + dy
+                b = _box(p)
+                if not any(_hits(b, q) for q in done) and 2 < b[0] and b[2] < 398:
+                    best = (right, p["ly"]); break
+            if best:
+                break
+        if best:
+            p["right"], p["ly"] = best
+            done.append(_box(p))
+        else:
+            p["hide"] = True        # no room: keep the dot, the city is still in the cards below
+    dots = ""
+    for i, p in enumerate(placed):
+        lx = p["x"] + (9 if p["right"] else -9)
+        anchor = "start" if p["right"] else "end"
+        dots += (f'<g class="sa-dot" style="animation-delay:{0.15 + i * 0.08:.2f}s">'
+                 f'<line x1="{C}" y1="{C}" x2="{p["x"]:.1f}" y2="{p["y"]:.1f}" stroke="{ACC2}" stroke-opacity=".18" stroke-width="1"/>'
+                 f'<circle cx="{p["x"]:.1f}" cy="{p["y"]:.1f}" r="7" fill="{ACC}" fill-opacity=".18"/>'
+                 f'<circle cx="{p["x"]:.1f}" cy="{p["y"]:.1f}" r="3.6" fill="{ACC2}"/>'
+                 + ("" if p.get("hide") else
+                    f'<text x="{lx:.1f}" y="{p["ly"]:.1f}" text-anchor="{anchor}" class="sa-label">{p["a"]["city"]}</text>')
+                 + '<title>' + f'{p["a"]["city"]} &#8211; {p["a"]["miles"]} mi' + '</title></g>')
+    hq = (f'<circle cx="{C}" cy="{C}" r="14" fill="{ACC2}" class="sa-pulse"/>'
+          f'<circle cx="{C}" cy="{C}" r="11" fill="{ACC}"/>'
+          f'<circle cx="{C}" cy="{C}" r="4.5" fill="#fff"/>'
+          f'<text x="{C}" y="{C + 30}" text-anchor="middle" class="sa-label" style="font-size:13px;font-weight:800">{city}</text>'
+          f'<text x="{C}" y="{C + 44}" text-anchor="middle" class="sa-ring-label" style="fill:{ACC2}">HEADQUARTERS</text>')
+    radar = (f'<div class="sa-radar" role="img" aria-label="Map of {name} service area around {city}, {state}">'
+             f'<div class="sa-sweep"></div>'
+             f'<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">{rings}{axes}{dots}{hq}</svg></div>')
+
+    # --- city cards ------------------------------------------------------------------
+    pin = _icon("lucide:map-pin", 13, ACC2)
+    clock = _icon("lucide:clock", 12, "#78716c")
+    go = _icon("lucide:arrow-up-right", 16, ACC2)
+    cards = (f'<a href="#contact" class="sa-card sa-hq">'
+             f'<div class="sa-card-top">{_icon("lucide:home", 15, ACC2)}<span class="sa-chip">HQ</span></div>'
+             f'<span class="sa-card-name">{city}</span>'
+             f'<span class="sa-card-meta">{_icon("lucide:zap", 12, ACC2)}Fastest response</span>'
+             f'<span class="sa-card-go">{go}</span></a>')
+    for a in areas:
+        cards += (f'<a href="#contact" class="sa-card">'
+                  f'<div class="sa-card-top">{pin}<span class="sa-chip">{a["miles"]} MI</span></div>'
+                  f'<span class="sa-card-name">{a["city"]}</span>'
+                  f'<span class="sa-card-meta">{clock}~{_sa_drive_minutes(a["miles"])} min drive</span>'
+                  f'<span class="sa-card-go">{go}</span></a>')
+
+    team = "same crew" if P.get("team_alt", "").startswith("crew") else "same team"
+    lead = (f'<strong>{name}</strong> covers <strong>{city}</strong> and <strong>{n_comm - 1} neighbouring '
+            f'communities</strong> across {region} &mdash; {team}, same pricing, no travel fees.'
+            if areas else
+            f'<strong>{name}</strong> serves <strong>{city}</strong> and all of {region} &mdash; {team}, same pricing, no travel fees.')
+    if areas:
+        stats = [(str(n_comm), "Communities"), (str(ring_mi), "Mile Radius"),
+                 (str(len(counties)), "Counties" if len(counties) != 1 else "County")]
+    else:   # city not in the database: no fake numbers
+        stats = [("100%", "Local Team"), (str(ring_mi), "Mile Radius"), ("24/7", "Response")]
+    stats_html = "".join(f'<div class="sa-stat"><b>{v}</b><span>{lbl}</span></div>' for v, lbl in stats)
+
+    return f'''
+    <!-- ==================== SERVICE AREAS ==================== -->
+    <section id="service-areas" class="sa" aria-label="Service areas" style="--sa-acc:{ACC};--sa-acc2:{ACC2};--sa-accd:{ACCD}">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="sa-top">
+                <div class="scroll-reveal">
+                    <div class="eyebrow">{_icon("lucide:map", 14, ACC2)}<span class="text-[11px] font-semibold tracking-[0.15em] uppercase" style="color:{ACC2}">Service Areas</span></div>
+                    <h2 class="sa-title">{kw} serving <span class="sa-hl">{city}</span> &amp; every town around it</h2>
+                    <p class="sa-lead">{lead}</p>
+                    <div class="sa-stats">
+                        {stats_html}
+                    </div>
+                    <div class="sa-actions">
+                        <a style="color:#fff;text-decoration:none" href="tel:+{tel}" class="sa-btn sa-btn-main">{_icon("lucide:phone", 16, "currentColor")}Call {phone}</a>
+                        <a style="color:#fff;text-decoration:none" href="#contact" class="sa-btn sa-btn-ghost">{_icon("lucide:map-pin", 16, ACC2)}Check My Area</a>
+                    </div>
+                </div>
+                <div class="scroll-reveal">{radar}</div>
+            </div>
+            <div class="sa-cards scroll-reveal">{cards}</div>
+            <div class="sa-foot scroll-reveal">
+                <p>{_icon("lucide:navigation", 15, ACC2)} <b>Don't see your town?</b> We cover all of {region} and nearby &mdash; just ask.</p>
+                <a style="color:#fff;text-decoration:none;padding:.75rem 1.15rem" href="#contact" class="sa-btn sa-btn-main">{P["cta"]} {_icon("lucide:arrow-right", 15, "currentColor")}</a>
+            </div>
+        </div>
+    </section>
+'''
+
+
 def build_site(name: str, address: str, phone: str, niche: str,
                out_dir=None, email: str = None, hours: str = "Mon–Sat: 7AM–7PM",
                warn=print) -> Path:
@@ -478,15 +703,8 @@ def build_site(name: str, address: str, phone: str, niche: str,
                      f'<p class="text-[10px] text-stone-500 mt-1">{label}</p></div>')
 
     # ----------------------------------------------------- SERVICE AREAS
-    areas_html = (f'<a href="#contact" class="area-card group rounded-xl border border-neutral-800 '
-                  f'bg-neutral-900/20 p-4 text-center transition-all">'
-                  f'<p class="area-name text-sm font-semibold text-white transition-colors">{city}</p>'
-                  f'<p class="text-[10px] text-stone-600 mt-1">HQ</p></a>')
-    for a in areas:
-        areas_html += (f'<a href="#contact" class="area-card group rounded-xl border border-neutral-800 '
-                       f'bg-neutral-900/20 p-4 text-center transition-all">'
-                       f'<p class="area-name text-sm font-semibold text-white transition-colors">{a["city"]}</p>'
-                       f'<p class="text-[10px] text-stone-600 mt-1">{a["miles"]} mi</p></a>')
+    areas_section = build_service_areas(name, city, state, region, kw, phone, tel, areas,
+                                        P, ACC, ACC2, ACCD, _icon)
 
     # ---------------------------------------------------------- REVIEWS
     rcities = ([city] + [a["city"] for a in areas])[:3]
@@ -739,6 +957,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
         /* Long business names used to run into the menu on 1024-1400px screens. */
         @media (max-width: 1400px) {{ nav .hidden.lg\\:flex {{ gap: 1.25rem; }} }}
         .brand-name {{ display: block; max-width: 15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+{SERVICE_AREA_CSS}
         .nav-link::after {{ content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: {ACC}; transition: width 0.3s ease; }}
         .nav-link:hover::after {{ width: 100%; }}
 
@@ -946,18 +1165,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
         </div>
     </section>
 
-    <!-- ==================== SERVICE AREAS ==================== -->
-    <section id="service-areas" class="py-24 border-t border-neutral-800/50 grid-pattern" aria-label="Service areas">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="scroll-reveal text-center mb-16">
-                <div class="eyebrow">{_icon("lucide:map", 14, ACC2)}<span class="text-[11px] font-semibold tracking-[0.15em] uppercase" style="color:{ACC2}">Service Areas</span></div>
-                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white">{kw} Serving {city} &amp; {region}</h2>
-                <p class="text-stone-400 max-w-2xl mx-auto">{P["area_note"]}</p>
-            </div>
-            <div class="scroll-reveal grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">{areas_html}</div>
-            <p class="scroll-reveal text-center text-sm text-stone-500 mt-8">Don't see your town? <a href="#contact" class="accent-link font-medium transition-colors" style="color:{ACC2}">Contact us</a> — we cover all of {region}.</p>
-        </div>
-    </section>
+{areas_section}
 {projects_section}
     <!-- ==================== REVIEWS ==================== -->
     <section id="reviews" class="py-24 border-t border-neutral-800/50 grid-pattern" aria-label="Reviews">

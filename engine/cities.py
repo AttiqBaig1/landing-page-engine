@@ -149,7 +149,7 @@ def nearby_areas(city_name: str, state: str, niche: str, n: int = 5,
         d = _haversine(src_lat, src_lon, c["lat"], c["lon"])
         if d <= radius:
             out.append({"city": c["city"], "state": c["state"], "county": c["county"],
-                        "pop": c["pop"], "miles": round(d)})
+                        "pop": c["pop"], "miles": round(d), "lat": c["lat"], "lon": c["lon"]})
 
     out.sort(key=lambda x: -x["pop"])
     return out[:n]
