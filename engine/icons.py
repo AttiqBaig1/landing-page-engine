@@ -190,6 +190,8 @@ ICONS = {
     'user': '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /> <circle cx="12" cy="7" r="4" />',
     'wifi': '<path d="M12 20h.01" /> <path d="M2 8.82a15 15 0 0 1 20 0" /> <path d="M5 12.859a10 10 0 0 1 14 0" /> <path d="M8.5 16.429a5 5 0 0 1 7 0" />',
     'wine': '<path d="M8 22h8" /> <path d="M7 10h10" /> <path d="M12 15v7" /> <path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-2-8H9c-1.5 4-2 6-2 8a5 5 0 0 0 5 5Z" />',
+    'arrow-up-right': '<path d="M7 7h10v10" /> <path d="M7 17 17 7" />',
+    'navigation': '<polygon points="3 11 22 2 13 21 11 13 3 11" />',
 }
 
 
