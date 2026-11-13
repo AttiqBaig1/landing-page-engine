@@ -623,6 +623,15 @@ for _k, _v in EXTRA_NICHES.items():
         raise ValueError(f"duplicate niche key: {_k}")
     NICHE_CONTENT[_k] = _v
 
+# 200 more (home trades, outdoor, cleaning, auto, health, legal, beauty, care)
+# live in niche_content_more.py.
+from niche_content_more import MORE_NICHES  # noqa: E402
+
+for _k, _v in MORE_NICHES.items():
+    if _k in NICHE_CONTENT:
+        raise ValueError(f"duplicate niche key: {_k}")
+    NICHE_CONTENT[_k] = _v
+
 
 def get_niche(niche: str) -> dict:
     """Return content dict for a niche key, or None if not yet written."""

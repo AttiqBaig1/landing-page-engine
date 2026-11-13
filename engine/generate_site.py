@@ -44,6 +44,52 @@ BASE_CSS = (ROOT / "base_css.txt").read_text(encoding="utf-8")
 # Canadian province codes -> used to switch county/province wording.
 CA_PROVINCES = {"ON", "QC", "BC", "AB", "MB", "SK", "NS", "NB", "NL", "PE", "NT", "YT", "NU"}
 
+# Wording that changes with the kind of business. Home-service niches use
+# "home" (the original wording); clinics, professional offices, salons, pet
+# and care services and auto shops get CTA buttons, reviews and trust lines
+# that fit them. A niche picks one with the `profile` key (default "home").
+PROFILES = {
+    "home":   {"cta": "Get a Free Quote", "cta_short": "Free Quote", "trust": "Licensed &amp; Insured",
+               "form_note": "Fill out the form for a <strong>free, no-obligation estimate</strong>. We respond within 24 hours.",
+               "title_tail": "Free Quotes", "team_alt": "crew working", "area_note": "Same crew, same pricing, no travel fees.",
+               "work": "Projects", "kinds": ["Residential", "Emergency", "Commercial"]},
+    "auto":   {"cta": "Get a Free Quote", "cta_short": "Free Quote", "trust": "Certified &amp; Insured",
+               "form_note": "Tell us about your vehicle for a <strong>free, no-obligation quote</strong>. We respond within 24 hours.",
+               "title_tail": "Free Quotes", "team_alt": "technicians working", "area_note": "Same team, same pricing, wherever you are.",
+               "work": "Work", "kinds": ["Cars", "Trucks", "Fleet"]},
+    "clinic": {"cta": "Book an Appointment", "cta_short": "Book Now", "trust": "Licensed Professionals",
+               "form_note": "Send your details and we'll call to <strong>confirm a time that suits you</strong>. New patients welcome.",
+               "title_tail": "Book Today", "team_alt": "team caring for patients", "area_note": "Convenient for patients across the area.",
+               "work": "Clinic", "kinds": ["Care", "Treatment", "Follow-Up"]},
+    "pro":    {"cta": "Get a Free Consultation", "cta_short": "Free Consult", "trust": "Licensed Professionals",
+               "form_note": "Tell us what you need for a <strong>free, confidential consultation</strong>. We respond within one business day.",
+               "title_tail": "Free Consultation", "team_alt": "team meeting a client", "area_note": "In-person and virtual appointments available.",
+               "work": "Work", "kinds": ["Clients", "Cases", "Results"]},
+    "beauty": {"cta": "Book Your Appointment", "cta_short": "Book Now", "trust": "Licensed Professionals",
+               "form_note": "Send your details and we'll <strong>confirm your appointment</strong>. Walk-ins welcome when we have space.",
+               "title_tail": "Book Online", "team_alt": "team at work", "area_note": "Easy to reach from across the area.",
+               "work": "Work", "kinds": ["Before", "After", "Studio"]},
+    "care":   {"cta": "Book Now", "cta_short": "Book Now", "trust": "Insured &amp; Background-Checked",
+               "form_note": "Send your details and we'll <strong>get you booked in</strong>. We respond within 24 hours.",
+               "title_tail": "Book Today", "team_alt": "team at work", "area_note": "Same friendly team, wherever you are.",
+               "work": "Work", "kinds": ["Happy Clients", "Daily Care", "Specials"]},
+}
+
+REVIEW_POOLS = {
+    "clinic": [("Friendly staff, no long wait, and everything was explained clearly before anything was done.", "MK", "Michael K."),
+               ("Got in the same week. They actually listened, and the follow-up call was a nice touch.", "SR", "Sarah R."),
+               ("Upfront about costs and insurance from the start. Felt looked after the whole time.", "DT", "David T.")],
+    "pro":    [("Explained my options in plain English and never pushed. Answered every call and email.", "MK", "Michael K."),
+               ("Responsive, organised and upfront about fees. I knew exactly where things stood at each step.", "SR", "Sarah R."),
+               ("Took a stressful situation off my plate. Professional from the first call to the end.", "DT", "David T.")],
+    "beauty": [("Booked in quickly, on time, and the result was exactly what I asked for. Already rebooked.", "MK", "Michelle K."),
+               ("Clean, relaxing and really skilled. They took the time to understand what I wanted.", "SR", "Sarah R."),
+               ("Fair prices and great attention to detail. Best experience I've had in town.", "DT", "Dana T.")],
+    "care":   [("Reliable, kind and always on time. We trust them completely.", "MK", "Michael K."),
+               ("They answered right away and fit us in fast. Great communication the whole way.", "SR", "Sarah R."),
+               ("Upfront pricing and they genuinely care. Highly recommend.", "DT", "David T.")],
+}
+
 # Generic review templates — city names get filled in; work for any niche.
 REVIEW_POOL = [
     ("Same crew showed up every time, always upfront about pricing. No surprises on the final invoice.",
@@ -122,62 +168,100 @@ _REGION_CODES = {
 
 
 def parse_address(address: str):
-    """Pull (city, state/province) out of an address.
+    """Pull (city, state/province) out of whatever address the user typed.
 
-    Handles the clean form 'City, ST' as well as full postal addresses like
-    '143 Shawcliffe Cir Sw, Calgary, AB T2Y 1J5' — outreach lists never come
-    in the tidy two-token form, and the old parser mistook the street name
-    for the city and 'Ca'(lgary) for the state, so nothing matched the city
-    database and pages built half-empty.
+    Works with all of these:
+        'Fresno, CA'                         'Fresno CA 93721'
+        'Fresno'            (state looked up from the city database)
+        'Street 1, Fresno'  /  'Street 1 Fresno CA'  (street is ignored)
+        '143 Shawcliffe Cir SW, Calgary, AB T2Y 1J5'
+        'Fresno, California'                 (full state names too)
+
+    The street part never ends up in the H1: the city is matched against the
+    27,000-city database, taking the words right before the state.
     """
-    parts = [p.strip() for p in address.split(",") if p.strip()]
-    if len(parts) < 2:
-        raise ValueError(f"Address needs at least 'City, ST', got: {address}")
+    from cities import lookup_city, state_names, city_index, norm_city
 
-    # Find the region token. Two traps in real data:
-    #   * Directional quadrants NE/NW/SE/SW look like state codes (NE=Nebraska)
-    #     but sit inside the STREET token: '847 13th Avenue NE, Calgary, AB ...'
-    #   * So we scan RIGHT-TO-LEFT and prefer a code that is the sole/last
-    #     alpha token in its comma-group (a real 'AB' or 'AB T2E 1C9'), not one
-    #     glued onto a street name.
-    _QUADRANTS = {"NE", "NW", "SE", "SW"}
-    region_idx = None
-    state = None
-    for i in range(len(parts) - 1, -1, -1):
-        words = parts[i].replace("-", " ").split()
-        for j, w in enumerate(words):
-            # A genuine province/state code is exactly two letters with no
-            # digits. 'T9N' (postal) would reduce to 'TN' and be mistaken for
-            # Tennessee, so reject any word that carried a digit.
-            if any(ch.isdigit() for ch in w):
-                continue
-            code = re.sub(r"[^A-Za-z]", "", w).upper()
-            if len(code) == 2 and code in _REGION_CODES:
-                # Skip a directional that is trailing a street name
-                # (e.g. 'Avenue NE'): it is a quadrant, not a province.
-                if code in _QUADRANTS and j > 0:
-                    continue
-                region_idx = i
-                state = code
-                break
+    text = (address or "").strip()
+    if not text:
+        raise ValueError("Address is empty — give at least a city, e.g. 'Fresno, CA'")
+
+    # Words with the comma-group each belongs to.
+    groups = [g.strip() for g in text.split(",") if g.strip()]
+    words = []                      # (word, group_no, last_alpha_in_group)
+    for gi, grp in enumerate(groups):
+        ws = grp.replace("-", " ").split()
+        alpha_pos = [k for k, w in enumerate(ws) if re.sub(r"[^A-Za-z]", "", w) and not any(ch.isdigit() for ch in w)]
+        last_alpha = alpha_pos[-1] if alpha_pos else -1
+        for k, w in enumerate(ws):
+            words.append((w, gi, k == last_alpha))
+
+    # 1) Find the state: full name ('New York') or 2-letter code, scanning
+    #    right-to-left. Quadrants (NE/NW/SE/SW) only count if nothing else does.
+    snames = state_names()
+    state, state_at = None, None
+    quadrant_hit = None
+    for i in range(len(words) - 1, -1, -1):
+        for L in (3, 2):            # 'british columbia', 'new york', 'district of columbia'
+            if i - L + 1 >= 0:
+                phrase = " ".join(re.sub(r"[^A-Za-z]", "", w).lower() for w, _, _ in words[i - L + 1:i + 1])
+                if phrase in snames:
+                    state, state_at = snames[phrase], i - L + 1
+                    break
         if state:
             break
+        w, gi, last_alpha = words[i]
+        if any(ch.isdigit() for ch in w):
+            continue
+        code = re.sub(r"[^A-Za-z]", "", w)
+        if len(code) == 2 and code.upper() in _REGION_CODES and (code.isupper() or last_alpha):
+            if code.upper() in {"NE", "NW", "SE", "SW"} and i > 0 and words[i - 1][1] == gi:
+                quadrant_hit = quadrant_hit or (code.upper(), i)
+                continue
+            state, state_at = code.upper(), i
+            break
+        if len(code) > 2 and code.lower() in snames:
+            state, state_at = snames[code.lower()], i
+            break
+    if state is None and quadrant_hit:
+        state, state_at = quadrant_hit
 
-    if state is None:
-        # No recognisable code — fall back to the old behaviour on the last
-        # two tokens so we still produce something.
-        city = parts[-2]
-        state = re.sub(r"[^A-Za-z]", "", parts[-1])[:2].upper()
-        return city, state
+    # 2) Candidate words for the city: everything before the state, minus
+    #    numbers / postal codes.
+    before = words[:state_at] if state_at is not None else words
+    cand = [w for w, _, _ in before if not any(ch.isdigit() for ch in w)]
+    cand = [re.sub(r"[^A-Za-z.'’ ]", "", w) for w in cand]
+    cand = [w for w in cand if w]
 
-    # City is the token immediately before the region token (or, if the region
-    # code is alone in the first token, the first token itself).
-    city_idx = region_idx - 1 if region_idx > 0 else 0
-    city = parts[city_idx]
+    # 3) Longest run of words ending right before the state that is a real city.
+    idx = city_index()
+    for end in range(len(cand), 0, -1):
+        for L in range(min(5, end), 0, -1):
+            name = " ".join(cand[end - L:end])
+            rows = idx.get(norm_city(name), [])
+            if state:
+                rows = [c for c in rows if c["state"] == state]
+            if rows:
+                return rows[0]["city"], rows[0]["state"]
+        if state:      # only look at the words directly before the state
+            break
 
-    # Strip any leading unit/number noise a city token shouldn't carry.
-    city = re.sub(r"^\d+\s+", "", city).strip()
-    return city, state
+    # 4) Not in the database. Use the comma-group right before the state
+    #    (street groups contain digits / street words, so skip those).
+    if state:
+        prev_groups = sorted({gi for _, gi, _ in before}, reverse=True)
+        for gi in prev_groups:
+            grp_words = [w for w, g, _ in before if g == gi]
+            if any(any(ch.isdigit() for ch in w) for w in grp_words):
+                continue
+            city = " ".join(grp_words).strip()
+            if city:
+                return city.title() if city.islower() or city.isupper() else city, state
+        if cand:
+            return cand[-1].title(), state
+        raise ValueError(f"Couldn't find a city in '{address}' — write it like 'Fresno, CA'")
+
+    raise ValueError(f"City not recognised in '{address}' — add the state, e.g. 'Fresno, CA'")
 
 
 def unescape(s: str) -> str:
@@ -309,6 +393,8 @@ def build_site(name: str, address: str, phone: str, niche: str,
     brand = name.upper()
     logo = content.get("logo", "lucide:hard-hat")     # niche-specific brand mark
     audience = content.get("audience", "Homeowners")  # who the reviews speak for
+    P = dict(PROFILES["home"], **PROFILES.get(content.get("profile", "home"), {}))
+    CTA, CTA_SHORT = P["cta"], P["cta_short"]
 
     tagline   = content["tagline"]
     kw        = content["h1_keyword"]
@@ -349,7 +435,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
                     <div class="service-icon-wrap rounded-xl border border-neutral-700 bg-neutral-800/80 mb-5 transition-all duration-300">{_icon(icon, 26, ACC2, cls="transition-colors duration-300")}</div>
                     <h3 class="text-lg font-semibold tracking-tight mb-2 text-white">{s_name} in {city}</h3>
                     <p class="text-sm text-stone-400 leading-relaxed mb-5">{s_desc}</p>
-                    <a href="#contact" class="accent-link inline-flex items-center gap-1.5 text-sm font-medium transition-colors" style="color:{ACC2}">Get a Free Quote {_icon("lucide:arrow-right", 14, "currentColor")}</a>
+                    <a href="#contact" class="accent-link inline-flex items-center gap-1.5 text-sm font-medium transition-colors" style="color:{ACC2}">{CTA} {_icon("lucide:arrow-right", 14, "currentColor")}</a>
                 </article>'''
 
     # -------------------------------------------------------------- FAQ
@@ -377,16 +463,18 @@ def build_site(name: str, address: str, phone: str, niche: str,
     # ------------------------------------------------------------ STATS
     stats_lg, stats_sm = "", ""
     for num, suf, label in content["stats"]:
-        digits = re.sub(r"\D", "", num) or "0"
-        prefix = re.sub(r"[\d,]", "", num)          # e.g. "24hr" -> "hr"
-        suffix = prefix + suf
+        digits = re.sub(r"\D", "", num)
+        if digits and "/" not in num:   # numbers count up: "1600" -> 0..1,600+ ; "24hr" -> 0..24hr
+            prefix = re.sub(r"[\d,]", "", num)
+            attrs = f'data-target="{digits}" data-suffix="{prefix + suf}"'
+            shown = "0"
+        else:        # words ("Free", "Same", "24/7"-less text) are shown as-is, no counter
+            attrs, shown = "", f"{num}{suf}"
         stats_lg += (f'<div class="glass-badge rounded-xl p-5 text-center">'
-                     f'<p class="stat-counter text-3xl font-extrabold" style="color:{ACC2}" '
-                     f'data-target="{digits}" data-suffix="{suffix}">0</p>'
+                     f'<p class="stat-counter text-3xl font-extrabold" style="color:{ACC2}" {attrs}>{shown}</p>'
                      f'<p class="text-[10px] text-stone-500 mt-1.5 font-medium tracking-wide uppercase">{label}</p></div>')
         stats_sm += (f'<div class="text-center">'
-                     f'<p class="stat-counter text-2xl font-extrabold" style="color:{ACC2}" '
-                     f'data-target="{digits}" data-suffix="{suffix}">0</p>'
+                     f'<p class="stat-counter text-2xl font-extrabold" style="color:{ACC2}" {attrs}>{shown}</p>'
                      f'<p class="text-[10px] text-stone-500 mt-1">{label}</p></div>')
 
     # ----------------------------------------------------- SERVICE AREAS
@@ -404,7 +492,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
     rcities = ([city] + [a["city"] for a in areas])[:3]
     stars = "".join(f'{_icon("lucide:star", 16, ACC2)}' for _ in range(5))
     reviews_html = ""
-    for i, (text, initials, person) in enumerate(REVIEW_POOL):
+    for i, (text, initials, person) in enumerate(REVIEW_POOLS.get(content.get("profile", "home"), REVIEW_POOL)):
         reviews_html += f'''
                 <div class="scroll-reveal review-card rounded-xl border border-neutral-800 bg-neutral-900/20 p-7 transition-all">
                     <div class="flex items-center gap-1 mb-4">{stars}</div>
@@ -415,7 +503,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
     # --------------------------------------------------------- PROJECTS
     projects_section, projects_nav, projects_nav_m = "", "", ""
     if gal:
-        kinds = ["Residential", "Emergency", "Commercial"]
+        kinds = P["kinds"]
         svcs = content["services"]
         cards = ""
         for i, gi in enumerate(gal[:3]):
@@ -427,15 +515,15 @@ def build_site(name: str, address: str, phone: str, niche: str,
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none"></div>
                     <div class="absolute bottom-0 left-0 right-0 p-5"><span class="text-[10px] font-semibold tracking-[0.15em] uppercase" style="color:{ACC2}">{kinds[i]} — {place}</span><h3 class="text-lg font-semibold mt-1 text-white">{title}</h3><p class="text-sm text-stone-400 mt-1">{hook}</p></div>
                 </article>'''
-        projects_nav = '<a href="#projects" class="nav-link text-sm text-stone-300 hover:text-white transition-colors">Projects</a>'
-        projects_nav_m = '<a href="#projects" class="mobile-nav-link text-base text-stone-300 hover:text-white hover:bg-neutral-800 transition-all py-3 px-4 rounded-lg">Projects</a>'
+        projects_nav = '<a href="#projects" class="nav-link text-sm text-stone-300 hover:text-white transition-colors">' + P["work"] + '</a>'
+        projects_nav_m = '<a href="#projects" class="mobile-nav-link text-base text-stone-300 hover:text-white hover:bg-neutral-800 transition-all py-3 px-4 rounded-lg">' + P["work"] + '</a>'
         projects_section = f'''
     <!-- ==================== PROJECTS ==================== -->
     <section id="projects" class="py-24 border-t border-neutral-800/50" aria-label="Recent projects">
         <div class="max-w-7xl mx-auto px-6 lg:px-8">
             <div class="scroll-reveal text-center mb-16">
-                <div class="eyebrow">{_icon("lucide:images", 14, ACC2)}<span class="text-[11px] font-semibold tracking-[0.15em] uppercase" style="color:{ACC2}">Recent Projects</span></div>
-                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white">{unescape(kw)} Projects in {city} &amp; {region}</h2>
+                <div class="eyebrow">{_icon("lucide:images", 14, ACC2)}<span class="text-[11px] font-semibold tracking-[0.15em] uppercase" style="color:{ACC2}">Recent {P["work"]}</span></div>
+                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white">{unescape(kw)} {P["work"]} in {city} &amp; {region}</h2>
                 <p class="text-stone-400 max-w-2xl mx-auto">See the workmanship behind the reviews.</p>
             </div>
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">{cards}
@@ -448,7 +536,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
                   f'alt="{name} — {unescape(kw)} at work in {city}, {state}" loading="eager" '
                   f'onload="this.classList.add(\'loaded\')" onerror="this.style.display=\'none\'"></div>'
                   ) if hero_img else ""
-    about_media = (f'<img src="{about_img}" alt="{name} crew working in {city}, {state}" loading="lazy">'
+    about_media = (f'<img src="{about_img}" alt="{name} {P["team_alt"]} in {city}, {state}" loading="lazy">'
                    if about_img else
                    f'<div class="w-full h-full flex items-center justify-center">'
                    f'{_icon(logo, 110, ACC2, style="opacity:.18")}</div>')
@@ -474,7 +562,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
     <meta name="robots" content="index, follow">
     <meta name="geo.region" content="{country}-{state}">
     <meta name="geo.placename" content="{city}">{geo_meta}
-    <title>{html_attr(name)} | {kw} in {city}, {state} | Free Quotes</title>
+    <title>{html_attr(name)} | {kw} in {city}, {state} | {P["title_tail"]}</title>
 
     <meta property="og:title" content="{html_attr(name)} — {kw} in {city}, {state}">
     <meta property="og:description" content="{html_attr(meta_desc)}">
@@ -736,7 +824,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
                         {_icon("lucide:phone-call", 16, ACC2)}
                         <div><p class="text-[9px] font-semibold tracking-widest uppercase leading-none" style="color:{ACC2}">{tagline}</p><p class="text-sm font-bold text-white leading-tight">{phone}</p></div>
                     </a>
-                    <a href="#contact" class="btn-accent hidden sm:inline-flex items-center gap-2 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-all duration-200 shrink-0">Free Quote</a>
+                    <a href="#contact" class="btn-accent hidden sm:inline-flex items-center gap-2 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-all duration-200 shrink-0">{CTA_SHORT}</a>
                     <button id="mobileMenuBtn" class="lg:hidden p-2 text-stone-400 hover:text-white transition-colors" aria-label="Open menu">{_icon("lucide:menu", 24, "currentColor")}</button>
                 </div>
             </div>
@@ -761,7 +849,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
         </div>
         <div class="mt-8 pt-6 border-t border-neutral-800">
             <a href="tel:+{tel}" class="flex items-center gap-3 text-sm text-stone-400 mb-4 px-4">{_icon("lucide:phone-call", 16, ACC2)}{phone}</a>
-            <a href="#contact" class="btn-accent mobile-nav-link flex items-center justify-center gap-2 text-white text-sm font-semibold px-6 py-3.5 rounded-lg transition-colors w-full">Get Free Quote</a>
+            <a href="#contact" class="btn-accent mobile-nav-link flex items-center justify-center gap-2 text-white text-sm font-semibold px-6 py-3.5 rounded-lg transition-colors w-full">{CTA}</a>
         </div>
     </div>
     <div id="mobileOverlay" class="fixed inset-0 z-[55] bg-black/70 hidden"></div>
@@ -793,7 +881,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
                     <p class="opacity-0 animate-fade-in-up delay-400 text-base sm:text-lg text-stone-300 leading-relaxed mt-4 max-w-xl">{hero_sub}</p>
 
                     <div class="opacity-0 animate-fade-in-up delay-500 flex flex-wrap gap-4 mt-10">
-                        <a href="#contact" class="btn-accent cta-glow inline-flex items-center gap-2.5 text-white font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-sm tracking-wide">GET FREE QUOTE {_icon("lucide:arrow-right", 18, "currentColor")}</a>
+                        <a href="#contact" class="btn-accent cta-glow inline-flex items-center gap-2.5 text-white font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-sm tracking-wide">{CTA.upper()} {_icon("lucide:arrow-right", 18, "currentColor")}</a>
                         <a href="tel:+{tel}" class="btn-ghost inline-flex items-center gap-2.5 border border-neutral-600 text-white font-semibold px-8 py-4 rounded-lg transition-all duration-200 text-sm tracking-wide bg-white/5">{_icon("lucide:phone", 16, ACC2)}{phone}</a>
                     </div>
 
@@ -852,7 +940,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
                     <p class="text-stone-400 leading-relaxed mb-5">{about_b[0]}</p>
                     <p class="text-stone-400 leading-relaxed mb-8">{about_b[1] if len(about_b) > 1 else ''}</p>
                     <div class="space-y-4 mb-8">{about_checks}</div>
-                    <a href="#contact" class="btn-accent inline-flex items-center gap-2.5 text-white font-semibold px-8 py-3.5 rounded-lg transition-colors text-sm">Get a Free Quote {_icon("lucide:arrow-right", 16, "currentColor")}</a>
+                    <a href="#contact" class="btn-accent inline-flex items-center gap-2.5 text-white font-semibold px-8 py-3.5 rounded-lg transition-colors text-sm">{CTA} {_icon("lucide:arrow-right", 16, "currentColor")}</a>
                 </div>
             </div>
         </div>
@@ -864,7 +952,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
             <div class="scroll-reveal text-center mb-16">
                 <div class="eyebrow">{_icon("lucide:map", 14, ACC2)}<span class="text-[11px] font-semibold tracking-[0.15em] uppercase" style="color:{ACC2}">Service Areas</span></div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white">{kw} Serving {city} &amp; {region}</h2>
-                <p class="text-stone-400 max-w-2xl mx-auto">Same crew, same pricing, no travel fees.</p>
+                <p class="text-stone-400 max-w-2xl mx-auto">{P["area_note"]}</p>
             </div>
             <div class="scroll-reveal grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">{areas_html}</div>
             <p class="scroll-reveal text-center text-sm text-stone-500 mt-8">Don't see your town? <a href="#contact" class="accent-link font-medium transition-colors" style="color:{ACC2}">Contact us</a> — we cover all of {region}.</p>
@@ -904,7 +992,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
                 <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5 text-white">{content['cta_h2']}</h2>
                 <p class="text-stone-300 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">{hook} — serving {city} and all of {region}.</p>
                 <div class="flex flex-wrap justify-center gap-4">
-                    <a href="#contact" class="btn-accent cta-glow inline-flex items-center gap-2.5 text-white font-semibold px-10 py-4 rounded-lg transition-all text-sm tracking-wide">GET FREE QUOTE {_icon("lucide:arrow-right", 18, "currentColor")}</a>
+                    <a href="#contact" class="btn-accent cta-glow inline-flex items-center gap-2.5 text-white font-semibold px-10 py-4 rounded-lg transition-all text-sm tracking-wide">{CTA.upper()} {_icon("lucide:arrow-right", 18, "currentColor")}</a>
                     <a href="tel:+{tel}" class="btn-ghost inline-flex items-center gap-2.5 border border-neutral-500 text-white font-semibold px-10 py-4 rounded-lg transition-all text-sm tracking-wide bg-white/5">{_icon("lucide:phone", 16, "currentColor")}{phone}</a>
                 </div>
             </div>
@@ -918,8 +1006,8 @@ def build_site(name: str, address: str, phone: str, niche: str,
             <div class="grid lg:grid-cols-2 gap-16">
                 <div class="scroll-reveal">
                     <div class="eyebrow">{_icon("lucide:phone", 14, ACC2)}<span class="text-[11px] font-semibold tracking-[0.15em] uppercase" style="color:{ACC2}">Contact Us</span></div>
-                    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white">Get a Free Quote in <span style="color:{ACC2}">{city}, {state}</span></h2>
-                    <p class="text-stone-400 leading-relaxed mb-10">Fill out the form for a <strong>free, no-obligation estimate</strong>. We respond within 24 hours.</p>
+                    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-white">{CTA} in <span style="color:{ACC2}">{city}, {state}</span></h2>
+                    <p class="text-stone-400 leading-relaxed mb-10">{P["form_note"]}</p>
                     <div class="space-y-6">
                         <div class="flex items-start gap-4" style="margin-bottom:1.5rem"><div class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center" style="background:rgba({RGB},0.10);border:1px solid rgba({RGB},0.15)">{_icon("lucide:phone", 18, ACC2)}</div><div><p class="font-semibold text-sm text-white">Call or Text</p><p class="text-stone-400 text-sm"><a href="tel:+{tel}">{phone}</a></p></div></div>
                         <div class="flex items-start gap-4" style="margin-bottom:1.5rem"><div class="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center" style="background:rgba({RGB},0.10);border:1px solid rgba({RGB},0.15)">{_icon("lucide:mail", 18, ACC2)}</div><div><p class="font-semibold text-sm text-white">Email Us</p><p class="text-stone-400 text-sm"><a href="mailto:{email}">{email}</a></p></div></div>
@@ -953,7 +1041,7 @@ def build_site(name: str, address: str, phone: str, niche: str,
             <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-12">
                 <div class="sm:col-span-2 lg:col-span-1">
                     <div class="flex items-center gap-3 mb-5"><div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:{ACC}">{_icon(logo, 20, "currentColor")}</div><div><span class="text-lg font-bold tracking-tight text-white">{brand}</span><span class="text-[10px] block text-stone-500 tracking-[0.2em] uppercase -mt-0.5">{kw}</span></div></div>
-                    <p class="text-sm text-stone-500 leading-relaxed mb-5">{tagline} in {city}, {state}. Locally owned, licensed and insured.</p>
+                    <p class="text-sm text-stone-500 leading-relaxed mb-5">{tagline} in {city}, {state}. Locally owned. {P["trust"]}.</p>
                     <div class="flex items-center gap-2.5">
                         <a href="#" class="footer-link w-9 h-9 rounded-lg border border-neutral-800 flex items-center justify-center text-stone-500 transition-all" aria-label="Facebook">{_icon("lucide:facebook", 16, "currentColor")}</a>
                         <a href="#" class="footer-link w-9 h-9 rounded-lg border border-neutral-800 flex items-center justify-center text-stone-500 transition-all" aria-label="Instagram">{_icon("lucide:instagram", 16, "currentColor")}</a>
@@ -967,11 +1055,11 @@ def build_site(name: str, address: str, phone: str, niche: str,
                     <li class="flex items-center gap-2 text-sm text-stone-500" style="margin-bottom:.75rem">{_icon("lucide:mail", 12, ACC, cls="shrink-0")}<a href="mailto:{email}">{email}</a></li>
                     <li class="flex items-start gap-2 text-sm text-stone-500" style="margin-bottom:.75rem">{_icon("lucide:map-pin", 12, ACC, cls="mt-1 shrink-0")}<span>{city}, {state}<br>{region}</span></li>
                     <li class="flex items-center gap-2 text-sm text-stone-500" style="margin-bottom:.75rem">{_icon("lucide:clock", 12, ACC, cls="shrink-0")}{hours}</li>
-                    <li class="flex items-center gap-2 text-sm text-stone-500" style="margin-bottom:.75rem">{_icon("lucide:badge-check", 12, ACC, cls="shrink-0")}Licensed &amp; Insured</li>
+                    <li class="flex items-center gap-2 text-sm text-stone-500" style="margin-bottom:.75rem">{_icon("lucide:badge-check", 12, ACC, cls="shrink-0")}{P["trust"]}</li>
                 </ul></div>
             </div>
             <div class="mt-14 pt-8 border-t border-neutral-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p class="text-[11px] text-stone-600">© 2026 {name}. All rights reserved. Licensed &amp; Insured.</p>
+                <p class="text-[11px] text-stone-600">© 2026 {name}. All rights reserved. {P["trust"]}.</p>
                 <div class="flex items-center gap-6"><a href="#" class="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">Privacy Policy</a><a href="#" class="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">Terms of Service</a></div>
             </div>
         </div>

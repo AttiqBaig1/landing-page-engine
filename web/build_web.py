@@ -26,7 +26,8 @@ LIB = ROOT / "photo_library"
 WEB = Path(__file__).resolve().parent
 EXTS = (".jpg", ".jpeg", ".png", ".webp")
 ENGINE_FILES = ["generate_site.py", "niche_content.py", "niche_content_extra.py", "theme.py",
-                "images.py", "cities.py", "icons.py", "wp_format.py", "base_css.txt",
+                "images.py", "cities.py", "icons.py", "wp_format.py", "niche_content_more.py",
+                "niche_more_data.py", "base_css.txt",
                 "cities.csv", "sample_leads.csv"]
 PYODIDE_FILES = ["pyodide.mjs", "pyodide.asm.mjs", "pyodide.asm.wasm", "pyodide-lock.json", "pyodide.js"]
 

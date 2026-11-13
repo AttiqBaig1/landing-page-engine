@@ -170,7 +170,7 @@ details.card[open]>summary::after{content:"–"}
 <div class="shell">
   <!-- ====================== RAIL ====================== -->
   <aside class="rail" aria-label="Steps">
-    <div class="brand"><span class="logo">LP</span><div><b>Landing Page<br>Engine</b><small id="niche-total">76 niches · US &amp; Canada</small></div></div>
+    <div class="brand"><span class="logo">LP</span><div><b>Landing Page<br>Engine</b><small id="niche-total">278 niches · US &amp; Canada</small></div></div>
     <nav class="steps">
       <a href="#wp-exp" id="nav-wp"><span class="n">0</span><span>WordPress<small id="nav-wp-sub">Connect nahi hai</small></span></a>
       <a href="#gen-panel" id="nav-gen"><span class="n">1</span><span>Generate Sites<small>Manual ya CSV</small></span></a>
@@ -232,7 +232,7 @@ details.card[open]>summary::after{content:"–"}
           <input id="csv-file" type="file" accept=".csv,text/csv">
           <span style="font-size:28px" aria-hidden="true">📄</span>
           <b>CSV file yahan drop karein ya click karein</b>
-          <span style="color:var(--muted);font-weight:500">Columns: <code>name, address, phone, niche</code> · address: <code>City, ST</code></span>
+          <span style="color:var(--muted);font-weight:500">Columns: <code>name, address, phone, niche</code> · address: sirf city ya poora address</span>
         </label>
         <div class="bar"><button class="btn ghost" type="button" id="csv-sample">sample_leads.csv use karein</button></div>
         <div id="csv-err" class="alert bad" hidden></div>
@@ -370,7 +370,7 @@ function renderRows() {
     <div class="biz-row">
       <span class="idx">#${i + 1}</span>
       <label for="nm${i}">Business name<input id="nm${i}" class="nm" placeholder="R&R Roofing"></label>
-      <label for="ad${i}"><span>Address <span class="hint">(City, ST)</span></span><input id="ad${i}" class="ad" placeholder="Fresno, CA"></label>
+      <label for="ad${i}"><span>Address <span class="hint">(sirf city bhi chalegi)</span></span><input id="ad${i}" class="ad" placeholder="Fresno, CA ya 12 Main St, Fresno"></label>
       <label for="ph${i}">Phone<input id="ph${i}" class="ph" placeholder="(559) 555-0123"></label>
       <label for="nc${i}">Niche<span class="sel"><span class="sw"></span><select id="nc${i}" class="nc">${opts}</select></span></label>
     </div>`).join("");

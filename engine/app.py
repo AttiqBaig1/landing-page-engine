@@ -121,7 +121,7 @@ if True:
     rows_to_build = []
 
     if method == "Upload CSV":
-        st.caption("CSV columns required: `name, address, phone, niche` — address format: `City, ST`")
+        st.caption("CSV columns required: `name, address, phone, niche` — address: just a city, `City, ST`, or a full street address")
         up = st.file_uploader("Upload leads CSV", type=["csv"])
         if up:
             df = pd.read_csv(up)
@@ -142,7 +142,7 @@ if True:
             with c1:
                 nm = st.text_input(f"Name #{i+1}", key=f"nm{i}")
             with c2:
-                ad = st.text_input(f"Address (City, ST) #{i+1}", key=f"ad{i}")
+                ad = st.text_input(f"Address (city or full address) #{i+1}", key=f"ad{i}")
             with c3:
                 ph = st.text_input(f"Phone #{i+1}", key=f"ph{i}")
             with c4:

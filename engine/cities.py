@@ -9,6 +9,7 @@ Tested logic (haversine + population-sort) — same as validated
 earlier in the roofing/dumpster examples.
 """
 import csv
+import re
 import math
 from pathlib import Path
 from functools import lru_cache
@@ -56,6 +57,46 @@ def _load_cities():
             except (ValueError, KeyError):
                 continue
     return rows
+
+
+def norm_city(name: str) -> str:
+    """'St. Louis' / 'Saint Louis' / 'ST LOUIS' -> 'st louis'."""
+    n = name.lower().replace("&", " and ")
+    n = re.sub(r"[^a-z0-9 ]+", " ", n)
+    n = re.sub(r"\bsaint\b", "st", n)
+    n = re.sub(r"\bfort\b", "ft", n)
+    n = re.sub(r"\bmount\b", "mt", n)
+    return re.sub(r"\s+", " ", n).strip()
+
+
+@lru_cache(maxsize=1)
+def city_index():
+    """normalised city name -> list of rows (most populous first)."""
+    idx = {}
+    for c in _load_cities():
+        idx.setdefault(norm_city(c["city"]), []).append(c)
+    for rows in idx.values():
+        rows.sort(key=lambda c: -c["pop"])
+    return idx
+
+
+@lru_cache(maxsize=1)
+def state_names():
+    """lower-case state/province name -> 2-letter code, e.g. 'new york' -> 'NY'."""
+    out = {}
+    with open(CITIES_CSV, newline="", encoding="utf-8") as f:
+        for r in csv.DictReader(f):
+            if r.get("state_name"):
+                out[r["state_name"].strip().lower()] = r["state"].strip().upper()
+    return out
+
+
+def lookup_city(name: str, state: str = None):
+    """Best DB row for a city name, optionally limited to a state."""
+    rows = city_index().get(norm_city(name), [])
+    if state:
+        rows = [c for c in rows if c["state"] == state.upper()]
+    return rows[0] if rows else None
 
 
 def _haversine(lat1, lon1, lat2, lon2):
