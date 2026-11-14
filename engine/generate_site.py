@@ -284,6 +284,9 @@ def pick_icon(slug_s: str, sname: str) -> str:
 
 def img_to_datauri(path: Path, max_w: int = 1200, quality: int = 72) -> str:
     """Resize + compress before embedding — never embed a raw original."""
+    if path and str(path).startswith("http"):
+        from remote_photos import sized
+        return sized(str(path), max_w, quality)
     if not path or not Path(path).exists():
         return ""
     try:

@@ -81,6 +81,19 @@ def _role(path: Path) -> str:
     return "generic"
 
 
+def _remote_pick(business_name: str, niche: str) -> dict:
+    """Same shape as pick_images, from the niche's Unsplash list. Rotated by
+    business name so two businesses in one niche don't share a hero."""
+    from remote_photos import remote_urls
+    urls = remote_urls(niche)
+    if not urls:
+        return {"hero": None, "about": None, "gallery": []}
+    h = int(hashlib.md5(f"{business_name}|remote".encode()).hexdigest(), 16)
+    start = h % len(urls)
+    r = urls[start:] + urls[:start]
+    return {"hero": r[0], "about": r[1 % len(r)], "gallery": (r[2:] + r[:2])[:3]}
+
+
 def pick_images(business_name: str, niche: str) -> dict:
     """
     Returns {"hero": Path|None, "about": Path|None, "gallery": [Path x3]}
@@ -91,7 +104,7 @@ def pick_images(business_name: str, niche: str) -> dict:
     pool = _usable_files(niche)
     result = {"hero": None, "about": None, "gallery": []}
     if not pool:
-        return result
+        return _remote_pick(business_name, niche)
 
     buckets = {"hero": [], "about": [], "gallery": [], "service": [], "generic": []}
     for f in pool:
@@ -153,7 +166,10 @@ def pick_images(business_name: str, niche: str) -> dict:
 
 
 def has_photos(niche: str) -> bool:
-    return len(_usable_files(niche)) > 0
+    if _usable_files(niche):
+        return True
+    from remote_photos import REMOTE
+    return niche in REMOTE
 
 
 if __name__ == "__main__":

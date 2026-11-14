@@ -36,6 +36,9 @@ from theme import get_theme  # noqa: E402
 def _img_to_datauri(path, max_w=1200, quality=72):
     if not path:
         return ""
+    if str(path).startswith("http"):
+        from remote_photos import sized
+        return sized(str(path), max_w, quality)
     p = Path(path)
     if not p.exists():
         return ""
