@@ -32,6 +32,8 @@ Each niche entry:
   cta_h2      -> final CTA headline
 """
 
+import re
+
 NICHE_CONTENT = {
 
 # ============================================================= ROOFING
@@ -633,10 +635,38 @@ for _k, _v in MORE_NICHES.items():
     NICHE_CONTENT[_k] = _v
 
 
+# Lead-list category labels -> niche key. A label that already matches a
+# niche key (e.g. "Roofing", "Junk Removal") needs no entry here.
+ALIASES = {
+    "lawn_landscape": "landscaping", "lawn": "lawn_care", "landscape": "landscaping",
+    "doors_windows": "doors_windows", "windows_doors": "doors_windows", "doors": "door_installation",
+    "windows": "window_installation", "electric": "electrician", "electrical": "electrician",
+    "pools": "pool_service", "pool": "pool_service", "tile": "tile_installation",
+    "paving": "paving_asphalt", "asphalt": "paving_asphalt", "granite_countertops": "countertops",
+    "granite": "countertops", "solar": "solar_installation", "gutters": "gutter_installation",
+    "plastering": "plaster_repair", "garage_doors": "garage_door", "cabinets": "cabinet_installation",
+    "contracting": "general_contractor", "contractor": "general_contractor",
+    "general_contracting": "general_contractor", "tree": "tree_service", "trees": "tree_service",
+    "restoration": "restoration", "hauling": "hauling", "home_improvement": "home_improvement",
+    "other": "home_improvement", "pressure_wash": "pressure_washing", "power_washing": "pressure_washing",
+    "auto_detail": "auto_detailing", "detailing": "auto_detailing", "movers": "moving",
+    "remodel": "remodeling", "tow": "towing", "fence": "fencing", "heating_and_cooling": "hvac",
+}
+
+
+def resolve_key(niche) -> str:
+    """Normalise any label ("Lawn/Landscape", "Garage Doors", "roof-repair")
+    to a niche key. Unknown labels come back normalised but unmatched."""
+    key = str(niche or "").lower().strip().replace("&", "and")
+    key = re.sub(r"[^a-z0-9]+", "_", key).strip("_").replace("_and_", "_")
+    if key in NICHE_CONTENT:
+        return key
+    return ALIASES.get(key, key)
+
+
 def get_niche(niche: str) -> dict:
-    """Return content dict for a niche key, or None if not yet written."""
-    key = niche.lower().strip().replace(" ", "_").replace("-", "_")
-    return NICHE_CONTENT.get(key)
+    """Return content dict for a niche key or category label, or None."""
+    return NICHE_CONTENT.get(resolve_key(niche))
 
 
 def all_niches() -> list:

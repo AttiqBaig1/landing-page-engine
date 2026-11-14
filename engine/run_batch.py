@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 
 from generate_site import build_site
-from niche_content import NICHE_CONTENT
+from niche_content import NICHE_CONTENT, resolve_key
 
 
 def run_batch(input_csv: str, out_dir: str = None, results_csv: str = None):
@@ -56,7 +56,7 @@ def run_batch(input_csv: str, out_dir: str = None, results_csv: str = None):
         name, address, phone, niche = row["name"], row["address"], row["phone"], row["niche"]
         print(f"[{i}/{len(rows)}] {name} ({niche})...", end=" ")
 
-        niche_key = niche.lower().strip().replace(" ", "_").replace("-", "_")
+        niche_key = resolve_key(niche)
         if niche_key not in NICHE_CONTENT:
             print(f"SKIPPED — no content for niche '{niche}'")
             results.append({"name": name, "phone": phone, "niche": niche,

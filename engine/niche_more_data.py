@@ -1445,3 +1445,42 @@ M("personal_trainer", "red", "dumbbell", "Personal Trainer", "Personal Training"
   "In-Home Training|home|We bring the gym to you; "
   "Nutrition Coaching|apple|Simple, realistic nutrition guidance; "
   "Small Group Training|users|Train with friends and save", **K, audience="Clients")
+
+# ---- added Nov 2026: categories from the lead list that had no niche yet ----
+M("hauling", "emerald", "truck", "Hauling Company", "Same-Day Hauling & Debris Removal", "Same-Day Pickup, Flat-Rate Pricing",
+  "Debris Hauling|truck|Yard, renovation and storm debris loaded and hauled away; "
+  "Furniture & Appliance Hauling|sofa|Couches, mattresses and appliances removed from any room; "
+  "Construction Debris|hard-hat|Drywall, lumber, tile and roofing tear-off cleared from job sites; "
+  "Estate & Garage Cleanouts|warehouse|Whole garages, basements and estates emptied in a day; "
+  "Dirt, Gravel & Rock|shovel|Fill dirt, gravel and rock hauled in or hauled out; "
+  "Recycling & Donation|recycle|Usable items donated and metals recycled before anything hits the landfill",
+  photos="junk_removal")
+M("restoration", "sky", "droplets", "Restoration Company", "24/7 Water, Fire & Mold Restoration", "On Site in 60 Minutes, Insurance Billed Direct",
+  "Water Damage Restoration|droplets|Extraction, drying and dehumidifying to stop damage spreading; "
+  "Fire & Smoke Restoration|flame|Soot, smoke odor and charred materials cleaned and rebuilt; "
+  "Mold Remediation|shield-alert|Containment, removal and testing so mold doesn't come back; "
+  "Storm Damage Repair|cloud-lightning|Board-ups, tarping and repairs after wind, hail and flooding; "
+  "Sewage Cleanup|shield-check|Safe, sanitised cleanup of sewage and contaminated water; "
+  "Insurance Claim Help|file-check|Photo documentation and direct billing with your insurer",
+  photos="storm_damage")
+M("doors_windows", "brown", "app-window", "Window & Door Company", "Replacement Windows & Doors", "Free In-Home Quote, Installed in a Day",
+  "Replacement Windows|app-window|Energy-efficient vinyl and fiberglass windows, custom-fit; "
+  "Entry Doors|door-open|Fiberglass and steel entry doors that seal tight and look sharp; "
+  "Patio & Sliding Doors|layout-panel-top|Sliding and French patio doors with low-E glass; "
+  "Storm Doors|shield|Storm and screen doors for extra protection and airflow; "
+  "Window & Door Repair|wrench|Foggy glass, broken seals, stuck sashes and drafty doors fixed; "
+  "Bay & Bow Windows|home|Bay, bow and picture windows that open up a room")
+M("home_improvement", "terracotta", "hammer", "Home Improvement Contractor", "Home Improvement & Repairs", "Free Estimates, One Crew for the Whole Job",
+  "Kitchen & Bath Updates|bath|Counters, cabinets, tile and fixtures updated without a full gut; "
+  "Interior & Exterior Painting|paint-roller|Clean, careful painting inside and out; "
+  "Flooring|layers|Hardwood, vinyl plank, laminate and tile installed; "
+  "Decks & Porches|hammer|New decks, porch repairs and railings built to code; "
+  "Drywall & Carpentry|ruler|Drywall patches, trim, doors and custom carpentry; "
+  "Exterior Repairs|home|Siding, gutters, soffit and fascia repairs that keep water out")
+M("general_contractor", "slate", "hard-hat", "General Contractor", "Licensed General Contractor", "Free Estimates, Fixed-Price Bids",
+  "Home Additions|building|Room additions and second stories, designed and permitted; "
+  "Kitchen & Bath Remodels|bath|Full kitchen and bathroom remodels from demo to final finish; "
+  "Basement Finishing|layers|Unfinished basements turned into usable living space; "
+  "Permits & Project Management|clipboard-check|Permits, inspections and every trade scheduled for you; "
+  "Structural Repairs|construction|Beams, framing, foundations and load-bearing walls done right; "
+  "Commercial Build-Outs|building-2|Office, retail and restaurant build-outs on schedule")

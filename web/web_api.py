@@ -29,7 +29,7 @@ sys.path.insert(0, str(ENGINE))
 
 import generate_site  # noqa: E402
 import images  # noqa: E402
-from niche_content import NICHE_CONTENT  # noqa: E402
+from niche_content import NICHE_CONTENT, resolve_key  # noqa: E402
 from theme import get_theme  # noqa: E402
 
 
@@ -51,7 +51,7 @@ _loaded = set()
 
 
 def _key(n):
-    return str(n).lower().strip().replace(" ", "_").replace("-", "_")
+    return resolve_key(n)
 
 
 def niches_json():
@@ -99,6 +99,10 @@ def parse_csv(text):
     text = text.lstrip("﻿")
     reader = csv.DictReader(io.StringIO(text))
     heads = [h.strip().lower() for h in (reader.fieldnames or [])]
+    # a lead list's "Category" / "Service" column works as the niche column
+    alt = next((h for h in ("category", "service", "industry", "trade") if h in heads), None)
+    if "niche" not in heads and alt:
+        heads.append("niche")
     missing = {"name", "address", "phone", "niche"} - set(heads)
     if missing:
         return json.dumps({"error": "CSV is missing column(s): " + ", ".join(sorted(missing))
@@ -108,6 +112,9 @@ def parse_csv(text):
         r = {(k or "").strip().lower(): (v or "").strip() for k, v in r.items()}
         if not any(r.get(c) for c in ("name", "address", "phone")):
             continue
+        if not r.get("niche") and alt:
+            r["niche"] = r.get(alt, "")
+        r["niche"] = resolve_key(r.get("niche", ""))
         rows.append({c: r.get(c, "") for c in ("name", "address", "phone", "niche")})
     return json.dumps({"rows": rows})
 
